@@ -849,23 +849,31 @@ const TEMPLATES = {
 };
 
 /* =================== запуск =================== */
-let canEdit = /(^|#)edit$/.test(location.hash);
+/* Редактор открывается только по секретной ссылке ...#edit и только у владельца.
+   По обычной ссылке (её получает она) — только просмотр, никаких кнопок редактора. */
+const wantsEditor = () => location.hash === '#edit' || !!sget('reopenEditor');
+let canEdit = location.protocol === 'file:'; // локальная проверка без claude.ai
 function showEditBtn() {
-  if (!canEdit || $('.editbtn')) return;
+  if (!canEdit || !wantsEditor() || Ed.open || $('.editbtn')) return;
   const b = h('button', 'editbtn', '✏️ Редактор'); b.onclick = () => { b.remove(); Ed.start(); };
   document.body.appendChild(b);
 }
+function tryOpenEditor() {
+  if (!canEdit || !wantsEditor() || Ed.open || Ed.previewing) return;
+  sset('reopenEditor', null); const b = $('.editbtn'); b && b.remove(); Ed.start();
+}
 openViewer(PUB.state, PUB.media);
-showEditBtn();
+window.addEventListener('hashchange', tryOpenEditor);
 (async () => {
-  if (!window.claude || !window.claude.use) return;
-  try {
-    const [user, art] = await Promise.all([window.claude.use('user'), window.claude.use('artifact')]);
-    Ed.art = art;
-    if (user && art && await user.canEdit()) canEdit = true;
-  } catch {}
-  if (canEdit && sget('reopenEditor')) { sset('reopenEditor', null); const b = $('.editbtn'); b && b.remove(); Ed.start(); return; }
-  showEditBtn();
+  if (window.claude && window.claude.use && wantsEditor()) {
+    try {
+      const [user, art] = await Promise.all([window.claude.use('user'), window.claude.use('artifact')]);
+      Ed.art = art;
+      canEdit = !!(user && art && await user.canEdit());
+    } catch { canEdit = false; }
+    if (!canEdit && location.hash === '#edit') toast('Редактор доступен только владельцу страницы');
+  }
+  tryOpenEditor();
 })();
 })();
 </script>
