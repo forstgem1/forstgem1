@@ -156,6 +156,15 @@ textarea{resize:vertical;min-height:70px;line-height:1.35}
 .track .t{flex:1;min-width:0}
 .track .t div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:14px}
 .track .t small{color:var(--ed-mute);font-size:12px}
+.track .t input{padding:4px 8px;font-size:13px;margin-top:4px}
+.track .t input:first-child{margin-top:0;font-weight:700}
+.track>img{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none}
+.spadd{display:flex;gap:8px}
+.spadd .b{flex:none;background:#1db954;border-color:#1db954;color:#000}
+.spbox{position:fixed;z-index:160;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));width:min(360px,calc(100vw - 24px));transform:translateX(-50%);opacity:0;pointer-events:none;transition:opacity .3s}
+.spbox.ask{opacity:1;pointer-events:auto}
+.spbox .sph{font-size:12px;font-weight:800;text-align:center;margin-bottom:6px;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.spbox iframe{display:block;border-radius:12px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .toast{position:fixed;z-index:200;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);background:#fff;color:#000;font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px);text-align:center}
 .modal{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
@@ -301,6 +310,43 @@ function placeEl(n, e) {
 }
 
 /* =================== музыка =================== */
+/* Spotify: официальный плеер (iFrame API). Без входа в Spotify в этом браузере играет 30-секундный отрывок.
+   Если браузер не дал запустить звук сам, всплывает мини-плеер: одно нажатие ▶ в нём — и музыка пошла. */
+const Spot = {
+  api: null, ctl: null, box: null, uri: '', on: false, held: false, playing: false, waitT: 0,
+  load() {
+    return this.api || (this.api = new Promise((res, rej) => {
+      window.onSpotifyIframeApiReady = res;
+      const s = document.createElement('script'); s.src = 'https://open.spotify.com/embed/iframe-api/v1'; s.onerror = rej;
+      document.head.appendChild(s); setTimeout(rej, 10000);
+    }).catch(() => null));
+  },
+  async play(sp, start) {
+    this.on = true; this.held = false;
+    const uri = 'spotify:' + sp.replace('/', ':');
+    const api = await this.load(); if (!api || !this.on) return;
+    if (!this.ctl) {
+      await new Promise(res => {
+        this.box = h('div', 'spbox', '<div class="sph">Нажми ▶ в плеере, чтобы включить музыку</div><div></div>');
+        document.body.appendChild(this.box);
+        api.createController(this.box.lastChild, { uri, width: '100%', height: 80 }, c => { this.ctl = c; c.addListener('playback_update', e => this.upd(e.data)); res(); });
+      });
+      this.uri = uri; if (!this.on) return;
+      this.ctl.play(); if (start) this.ctl.seek(start);
+    } else if (uri !== this.uri) { this.uri = uri; this.ctl.loadUri(uri, false, start || 0); this.ctl.play(); }
+    else this.ctl.resume();
+    this.watch();
+  },
+  upd(d) {
+    this.playing = !d.isPaused;
+    if (this.playing) { if (!this.on || this.held) { this.ctl.pause(); return; } this.box.classList.remove('ask'); }
+    else if (this.on && !this.held && d.duration && d.position >= d.duration - 1000) this.ctl.playFromStart(); // отрывок по кругу
+  },
+  watch() { clearTimeout(this.waitT); this.waitT = setTimeout(() => { if (this.on && !this.held && !this.playing && this.box) this.box.classList.add('ask'); }, 3500); },
+  pause() { this.held = true; this.ctl && this.ctl.pause(); this.box && this.box.classList.remove('ask'); },
+  resume() { if (!this.on) return; this.held = false; this.ctl && this.ctl.resume(); this.watch(); },
+  stop() { this.on = false; clearTimeout(this.waitT); this.ctl && this.ctl.pause(); this.box && this.box.classList.remove('ask'); },
+};
 const Music = {
   audio: new Audio(), key: null, muted: false, ctx: null, master: null, timer: null,
   hz: n => 440 * Math.pow(2, (n - 69) / 12),
@@ -318,18 +364,23 @@ const Music = {
     const m = this.resolve(st, i), key = m.track + '@' + (m.start || 0);
     const tr = st.tracks.find(t => t.id === m.track);
     if (key !== this.key) {
-      this.key = key; this.audio.pause(); this.stopSynth();
+      this.key = key; this.audio.pause(); this.stopSynth(); Spot.stop();
       if (m.track === 'synth') this.synth();
+      else if (tr && tr.sp && !tr.media) { if (!this.muted) Spot.play(tr.sp, m.start); }
       else if (tr && media[tr.media]) { this.audio.src = media[tr.media]; this.audio.loop = true; this.audio.muted = this.muted;
         const go = () => { try { this.audio.currentTime = m.start || 0; } catch {} this.audio.play().catch(() => {}); };
         this.audio.readyState >= 1 ? go() : this.audio.addEventListener('loadedmetadata', go, { once: true }); this.audio.play().catch(() => {}); }
     } else this.resume();
     return m.track === 'synth' ? { name:'Мелодия' } : tr ? { name: tr.name + (tr.artist ? ' — ' + tr.artist : ''), spotify: tr.spotify } : null;
   },
-  pause() { this.audio.pause(); this.ctx && this.ctx.suspend(); },
-  resume() { if (this.audio.src && this.key && !this.key.startsWith('synth') && !this.key.startsWith('@')) this.audio.play().catch(() => {}); this.ctx && this.timer && this.ctx.resume(); },
-  stop() { this.audio.pause(); this.stopSynth(); this.key = null; },
-  setMuted(v) { this.muted = v; this.audio.muted = v; if (this.master) this.master.gain.value = v ? 0 : .18; },
+  spTrack() { const st = V && V.st; if (!st || !this.key) return null; return st.tracks.find(t => t.sp && !t.media && this.key.startsWith(t.id + '@')) || null; },
+  pause() { this.audio.pause(); this.ctx && this.ctx.suspend(); Spot.pause(); },
+  resume() { if (this.audio.src && this.key && !this.key.startsWith('synth') && !this.key.startsWith('@')) this.audio.play().catch(() => {}); this.ctx && this.timer && this.ctx.resume(); if (!this.muted) Spot.resume(); },
+  stop() { this.audio.pause(); this.stopSynth(); Spot.stop(); this.key = null; },
+  setMuted(v) {
+    this.muted = v; this.audio.muted = v; if (this.master) this.master.gain.value = v ? 0 : .18;
+    const t = this.spTrack(); if (v) Spot.stop(); else if (t) Spot.play(t.sp, 0);
+  },
 };
 
 /* =================== просмотр =================== */
@@ -612,7 +663,8 @@ const Ed = {
   },
   p_music() {
     const R = this.row, p = this.pending;
-    let html = `<div class="note"><b>Про Spotify.</b> Spotify не разрешает встраивать свои треки в чужие страницы, поэтому песню нужно загрузить файлом (mp3). Ссылку на трек в Spotify можно прикрепить: на слайде появится кнопка «Spotify ↗», и она откроет песню в приложении.</div>`;
+    let html = `<div class="sec"><h4>Песня из Spotify</h4><div class="spadd"><input type="url" id="spurl" placeholder="https://open.spotify.com/track/…"><button class="b" data-a="spadd">Добавить</button></div>
+      <div class="note">В Spotify: «Поделиться» → «Копировать ссылку на песню» и вставь сюда. Песня будет играть на сайте через плеер Spotify. Если она не вошла в Spotify в этом браузере, играет 30-секундный отрывок. Песня целиком — загрузи mp3.</div></div>`;
     if (p) html += `<div class="sec" style="background:var(--ed-raise);border:1px solid var(--ed-line);border-radius:14px;padding:12px">
         <h4>Новый трек · ${esc(fmtT(p.dur))}</h4>
         <input type="text" data-t="pend" data-k="name" value="${esc(p.name)}" placeholder="Название">
@@ -624,7 +676,9 @@ const Ed = {
           : `<div class="note">Это не mp3, поэтому файл сохранится целиком (${fmtMB(p.size)}).</div>`}
         <div class="chips"><button class="b sm" data-a="pplay">▶ Послушать отрывок</button><button class="b sm pri" data-a="padd">Добавить</button><button class="b sm" data-a="pcancel">Отмена</button></div></div>`;
     else html += `<button class="b pri" data-a="addtrack" style="justify-content:center;padding:12px">＋ Загрузить песню (mp3)</button>`;
-    html += this.st.tracks.length ? `<div class="sec"><h4>Твои треки</h4>${this.st.tracks.map(t => `<div class="track"><div class="t"><div>${esc(t.name)}</div><small>${esc(t.artist || '—')} · ${fmtMB((this.media[t.media] || '').length * .75)}${t.spotify ? ' · Spotify ✓' : ''}</small></div>
+    html += this.st.tracks.length ? `<div class="sec"><h4>Твои треки</h4>${this.st.tracks.map(t => `<div class="track">${t.cover ? `<img src="${esc(t.cover)}" alt="">` : ''}<div class="t">
+        <input type="text" data-tn="${t.id}" data-f="name" value="${esc(t.name)}" placeholder="Название"><input type="text" data-tn="${t.id}" data-f="artist" value="${esc(t.artist)}" placeholder="Исполнитель">
+        <small>${t.media ? 'mp3 · ' + fmtMB((this.media[t.media] || '').length * .75) + (t.spotify ? ' · Spotify ✓' : '') : 'Spotify'}</small></div>
         <button class="b sm" data-tplay="${t.id}">▶</button><button class="b sm" data-tuse="${t.id}" title="Поставить на текущий слайд">На слайд</button><button class="b sm" data-tdel="${t.id}">🗑</button></div>`).join('')}</div>`
       : `<div class="empty">Пока нет своих песен, играет встроенная мелодия.</div>`;
     return html;
@@ -642,7 +696,9 @@ const Ed = {
 
   /* ----- ввод в панели ----- */
   onInput(ev, committed) {
-    const t = ev.target, k = t.dataset.k, scope = t.dataset.t; if (!k) return;
+    const t = ev.target, k = t.dataset.k, scope = t.dataset.t;
+    if (t.dataset.tn) { const tr = this.st.tracks.find(x => x.id === t.dataset.tn); if (!tr || committed) return; this.push('tn' + tr.id + t.dataset.f); tr[t.dataset.f] = t.value; this.after(false); return; }
+    if (!k) return;
     let v = t.type === 'checkbox' ? t.checked : t.type === 'range' || t.type === 'number' ? +t.value : t.value;
     if (t.type === 'checkbox') { t.closest('label').classList.toggle('on', v); if (!committed) return; }
     else if (committed && t.type !== 'color' && t.tagName !== 'SELECT') return;
@@ -707,6 +763,7 @@ const Ed = {
       case 'pplay': return this.previewPending();
       case 'pcancel': this.stopPrev(); this.pending = null; this.renderPanel(); break;
       case 'padd': return this.commitTrack();
+      case 'spadd': return this.addSpotify(t);
     }
   },
   async add(kind) {
@@ -739,7 +796,28 @@ const Ed = {
 
   /* ----- музыка в редакторе ----- */
   prev: null,
-  stopPrev() { if (this.prev) { this.prev.pause(); clearTimeout(this.prevT); this.prev = null; } },
+  stopPrev() { if (this.prev) { this.prev.pause(); clearTimeout(this.prevT); this.prev = null; } if (this.spPrev) { Spot.stop(); clearTimeout(this.prevT); this.spPrev = false; } },
+  async addSpotify(btn) {
+    const raw = ($('#spurl', this.r).value || '').trim();
+    const re = /spotify\.com\/(?:intl-[\w-]+\/)?(?:embed\/)?(track|album|playlist|episode)\/([A-Za-z0-9]{22})/;
+    if (!re.test(raw) && !/^https:\/\/spotify\.link\//.test(raw)) { toast('Вставь ссылку вида https://open.spotify.com/track/…'); return; }
+    btn.disabled = true; btn.textContent = 'Ищу…';
+    let info = null;
+    try { const r = await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent(raw)); if (r.ok) info = await r.json(); } catch {}
+    btn.disabled = false; btn.textContent = 'Добавить';
+    const m = raw.match(re) || (info && String(info.iframe_url || '').match(re));
+    if (!m) { toast('Не получилось распознать ссылку. Скопируй её в Spotify через «Поделиться»', 3500); return; }
+    const sp = m[1] + '/' + m[2];
+    this.addTrack({ id: uid(), name: (info && info.title) || 'Песня из Spotify', artist: '', spotify: 'https://open.spotify.com/' + sp, sp, cover: (info && info.thumbnail_url) || '', media: '', len: 240 });
+    if (!info) toast('Песня добавлена. Название не подтянулось, впиши его в списке ниже', 3500);
+  },
+  addTrack(tr) {
+    this.push(); this.st.tracks.push(tr);
+    const firstUse = !this.st.slides.some(s => this.st.tracks.some(t => t.id === s.music.track && t !== tr));
+    if (firstUse) this.st.slides[0].music = { track: tr.id, start: 0 };
+    this.after(true);
+    toast(firstUse ? 'Трек добавлен и стоит с первого слайда' : 'Трек добавлен. Выбери его во вкладке «Слайд»', 3000);
+  },
   async loadTrack() {
     const f = await pick('audio/*,.mp3,.m4a'); if (!f) return;
     const url = URL.createObjectURL(f), a = new Audio(url);
@@ -758,7 +836,8 @@ const Ed = {
   },
   previewTrack(id) {
     const t = this.st.tracks.find(x => x.id === id); if (!t) return;
-    if (this.prev && this.prevId === id) { this.stopPrev(); return; }
+    if ((this.prev || this.spPrev) && this.prevId === id) { this.stopPrev(); return; }
+    if (t.sp && !t.media) { this.stopPrev(); this.spPrev = true; this.prevId = id; Spot.play(t.sp, 0); this.prevT = setTimeout(() => this.stopPrev(), 20000); return; }
     this.stopPrev(); const a = new Audio(this.media[t.media]); this.prev = a; this.prevId = id; a.play().catch(() => toast('Не удалось проиграть'));
     this.prevT = setTimeout(() => this.stopPrev(), 15000);
   },
@@ -770,12 +849,8 @@ const Ed = {
     let blob = p.file, len = p.dur;
     if (p.mp3) { const buf = await p.file.arrayBuffer(); len = Math.min(p.len, p.dur - p.start); blob = clipMp3(buf, p.dur, p.start, len); }
     const id = uid(); this.media[id] = await readURL(blob);
-    const tr = { id: uid(), name: p.name || 'Без названия', artist: p.artist, spotify: sp, media: id, len };
-    this.push(); this.st.tracks.push(tr);
-    const firstUse = !this.st.slides.some(s => this.st.tracks.some(t => t.id === s.music.track && t !== tr));
-    if (firstUse) this.st.slides[0].music = { track: tr.id, start: 0 };
-    URL.revokeObjectURL(p.url); this.pending = null; this.after(true);
-    toast(firstUse ? 'Трек добавлен и стоит с первого слайда' : 'Трек добавлен. Выбери его во вкладке «Слайд»', 3000);
+    URL.revokeObjectURL(p.url); this.pending = null;
+    this.addTrack({ id: uid(), name: p.name || 'Без названия', artist: p.artist, spotify: sp, media: id, len });
   },
 
   /* ----- холст: выбор, перетаскивание, размер, поворот ----- */
