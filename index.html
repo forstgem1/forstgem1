@@ -1,291 +1,872 @@
-<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Наш 2026 Wrapped</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --ink:#0b0b0f;
-    --paper:#f6f1e9;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%;background:#000;color:var(--paper);font-family:Manrope,system-ui,sans-serif;overflow:hidden;user-select:none}
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>Наш 2026 Wrapped</title>
+<link id="gf" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Manrope:wght@400;600;800&family=Playfair+Display:ital,wght@0,400;0,800;1,400&family=Caveat:wght@400;700&family=Lobster&family=Comfortaa:wght@400;700&family=Rubik:wght@400;700;900&family=Montserrat:wght@400;700;900&family=Pacifico&family=Russo+One&family=Marck+Script&display=swap">
+<style id="css">
+/* Слайды 9:16 «как сторис» + тёмный редактор в духе Figma */
+:root{
+  color-scheme:dark;
+  --ink:#0b0b0f; --paper:#f6f1e9;
+  --ed-bg:#131116; --ed-panel:#1c1920; --ed-raise:#26222b; --ed-line:#332e39;
+  --ed-fg:#f3eef5; --ed-mute:#9d94a6; --ed-accent:#ff4f8b; --ed-sel:#4da3ff;
+  --ui:'Manrope',system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:#000;color:var(--paper);font-family:var(--ui);overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
 
-  /* Рамка-«телефон»: на мобиле во весь экран, на компе по центру 9:16 */
-  #stage{position:relative;height:100dvh;width:100vw;margin:0 auto;overflow:hidden;background:#111}
-  @media (min-aspect-ratio:3/4){#stage{width:calc(100dvh * 9 / 16);border-radius:22px;height:96dvh;top:2dvh;box-shadow:0 30px 80px rgba(0,0,0,.6)}}
+/* ---------- Холст слайда (общий для просмотра и редактора) ---------- */
+.canvas{position:absolute;inset:0;overflow:hidden;container-type:size;isolation:isolate}
+.canvas .bgimg{position:absolute;inset:0;background-size:cover;background-position:center;z-index:-3}
+.canvas .dim{position:absolute;inset:0;background:#000;z-index:-2}
+.el{position:absolute;transform-origin:center center}
+.el .in,.el .lp{width:100%;height:100%}
+.el.t .in,.el.t .lp{height:auto}
+.tx{white-space:pre-wrap;overflow-wrap:break-word}
+.tx .hl{padding:.08em .3em;border-radius:.25em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.im{width:100%;height:100%;overflow:hidden}
+.im img{width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none}
+.im.ph{display:grid;place-items:center;text-align:center;font:800 3.6cqw var(--ui);color:rgba(255,255,255,.9);
+  background:linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,.05)),repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 3cqw,transparent 3cqw 6cqw)}
+.im.ph b{display:block;font-size:14cqw;margin-bottom:2cqw}
+.shp{width:100%;height:100%}
+.shp svg{width:100%;height:100%;display:block}
+.deco{position:absolute;z-index:-1;pointer-events:none}
+.deco.blob{border-radius:50%}
+.deco.ring{border-radius:50%;border:5cqw dashed currentColor}
+.deco.stripe{left:-20%;right:-20%;height:18cqw;transform:rotate(-12deg)}
+.deco.heart{bottom:-10%;font-size:6cqw}
+.deco.star{font-size:5cqw}
+.play .deco.blob{animation:dfloat 9s ease-in-out infinite alternate}
+.play .deco.ring{animation:dspin 18s linear infinite}
+.play .deco.heart{animation:dup linear infinite}
+.play .deco.star{animation:dtw 2.4s ease-in-out infinite alternate}
+@keyframes dfloat{to{transform:translate(8cqw,-10cqw) scale(1.15) rotate(25deg)}}
+@keyframes dspin{to{transform:rotate(360deg)}}
+@keyframes dup{to{transform:translateY(-130cqh) rotate(40deg);opacity:0}}
+@keyframes dtw{from{opacity:.2;transform:scale(.6)}to{opacity:1;transform:scale(1.1)}}
+@keyframes a-fade{from{opacity:0}}
+@keyframes a-rise{from{opacity:0;transform:translateY(7cqw)}}
+@keyframes a-drop{from{opacity:0;transform:translateY(-9cqw)}}
+@keyframes a-left{from{opacity:0;transform:translateX(-14cqw)}}
+@keyframes a-pop{from{opacity:0;transform:scale(.5) rotate(-8deg)}}
+@keyframes a-zoom{from{opacity:0;transform:scale(1.5);filter:blur(6px)}}
+@keyframes l-float{to{transform:translateY(-2.2cqw)}}
+@keyframes l-pulse{to{transform:scale(1.07)}}
+@keyframes l-wiggle{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
+@keyframes l-spin{to{transform:rotate(360deg)}}
 
-  /* Прогресс-бары сверху как в сторис */
-  #bars{position:absolute;z-index:20;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;gap:4px}
-  .bar{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.3);overflow:hidden}
-  .bar i{display:block;height:100%;width:0;background:#fff}
+/* ---------- Просмотр ---------- */
+.viewer{position:fixed;inset:0;background:#000;z-index:50}
+.vstage{position:relative;height:100%;width:100%;margin:0 auto;overflow:hidden;background:#111}
+@media (min-aspect-ratio:3/4){.vstage{width:calc(96dvh * 9 / 16);height:96dvh;top:2dvh;border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.6)}}
+.vstage .canvas{transition:opacity .45s ease}
+.vbars{position:absolute;z-index:20;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;gap:4px}
+.vbars div{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.3);overflow:hidden}
+.vbars i{display:block;height:100%;width:0;background:#fff}
+.vtop{position:absolute;z-index:22;top:calc(max(10px,env(safe-area-inset-top)) + 14px);left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:800}
+.now{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:6px 11px 6px 9px;border-radius:99px;max-width:78%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;text-decoration:none}
+.now[hidden]{display:none}
+.now .sp{background:#1db954;color:#000;border-radius:99px;padding:2px 7px;font-size:10px;margin-left:2px}
+.eq{display:inline-flex;gap:2px;align-items:flex-end;height:12px;flex:none}
+.eq b{width:3px;background:#fff;border-radius:2px;animation:eq .9s ease-in-out infinite}
+.eq b:nth-child(2){animation-delay:-.3s}.eq b:nth-child(3){animation-delay:-.6s}
+.paused .eq b{animation-play-state:paused}
+@keyframes eq{0%,100%{height:3px}50%{height:12px}}
+.rbtn{background:rgba(0,0,0,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:0;color:#fff;min-width:32px;height:32px;border-radius:99px;font-size:14px;font-weight:800;padding:0 10px}
+.vzone{position:absolute;top:70px;bottom:0;z-index:10}
+.vzone.p{left:0;width:33%}.vzone.n{right:0;width:67%}
+.vhint{position:absolute;z-index:15;bottom:calc(14px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:12px;font-weight:700;opacity:.55;pointer-events:none}
+.again{position:absolute;z-index:25;left:50%;bottom:calc(44px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--paper);color:var(--ink);border:0;border-radius:99px;padding:13px 22px;font-weight:800;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.cover{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end;padding:40px 28px calc(60px + env(safe-area-inset-bottom));cursor:pointer}
+.cover h1{font-family:Unbounded,var(--ui);font-weight:900;font-size:clamp(40px,12vw,68px);line-height:.95;letter-spacing:-.03em;margin:0;white-space:pre-wrap;text-wrap:balance}
+.cover p{margin:14px 0 0;font-weight:600;opacity:.85;white-space:pre-wrap;font-size:16px}
+.cover .tap{margin-top:34px;display:inline-flex;gap:10px;background:#fff;color:#000;font-weight:800;padding:14px 22px;border-radius:99px;align-self:flex-start;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+.editbtn{position:fixed;z-index:60;right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));background:var(--ed-accent);color:#fff;border:0;border-radius:99px;padding:12px 18px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 
-  #top{position:absolute;z-index:20;top:calc(max(10px,env(safe-area-inset-top)) + 14px);left:14px;right:14px;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:800;letter-spacing:.02em}
-  #now{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.28);backdrop-filter:blur(8px);padding:6px 10px 6px 8px;border-radius:99px;max-width:75%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #now .eq{display:flex;gap:2px;align-items:flex-end;height:12px}
-  #now .eq b{width:3px;background:#fff;border-radius:2px;animation:eq 0.9s ease-in-out infinite}
-  #now .eq b:nth-child(2){animation-delay:-.3s}#now .eq b:nth-child(3){animation-delay:-.6s}
-  .paused #now .eq b{animation-play-state:paused}
-  @keyframes eq{0%,100%{height:3px}50%{height:12px}}
-  #mute{background:rgba(0,0,0,.28);backdrop-filter:blur(8px);border:0;color:#fff;width:32px;height:32px;border-radius:50%;font-size:15px;cursor:pointer}
-
-  /* Слайды */
-  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:90px 28px 60px;opacity:0;pointer-events:none;transition:opacity .45s ease;isolation:isolate;overflow:hidden}
-  .slide.on{opacity:1}
-  .slide h1,.slide h2{font-family:Unbounded,sans-serif;font-weight:900;line-height:1.02;letter-spacing:-.02em}
-  .slide h1{font-size:clamp(38px,11vw,64px)}
-  .slide h2{font-size:clamp(26px,7.4vw,40px)}
-  .slide p{font-size:clamp(16px,4.4vw,21px);font-weight:600;line-height:1.35;margin-top:16px}
-  .kicker{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;opacity:.85;margin-bottom:14px}
-  .big{font-family:Unbounded,sans-serif;font-weight:900;font-size:clamp(78px,25vw,150px);line-height:.9;letter-spacing:-.05em}
-
-  /* Появление текста по строкам */
-  .rv{opacity:0;transform:translateY(28px)}
-  .on .rv{animation:rise .8s cubic-bezier(.2,.9,.2,1) forwards}
-  .on .rv:nth-child(2){animation-delay:.35s}.on .rv:nth-child(3){animation-delay:.8s}
-  .on .rv:nth-child(4){animation-delay:1.3s}.on .rv:nth-child(5){animation-delay:1.8s}
-  @keyframes rise{to{opacity:1;transform:none}}
-
-  /* Декоративные фигуры на фоне (как в Wrapped) */
-  .blob{position:absolute;border-radius:50%;filter:blur(2px);opacity:.9;z-index:-1}
-  .on .blob{animation:float 9s ease-in-out infinite alternate}
-  @keyframes float{to{transform:translate(30px,-40px) scale(1.15) rotate(25deg)}}
-  .ring{position:absolute;border-radius:50%;border:18px solid currentColor;z-index:-1;opacity:.85}
-  .on .ring{animation:spin 18s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .stripe{position:absolute;left:-20%;right:-20%;height:70px;z-index:-1;transform:rotate(-12deg)}
-
-  /* Фото */
-  .photo{position:relative;width:100%;aspect-ratio:4/5;border-radius:18px;overflow:hidden;margin:6px 0 18px;box-shadow:0 18px 50px rgba(0,0,0,.35);transform:rotate(-2.5deg)}
-  .photo img{width:100%;height:100%;object-fit:cover;display:block}
-  .ph{width:100%;height:100%;display:grid;place-items:center;text-align:center;font-weight:800;font-size:14px;color:rgba(255,255,255,.9);
-      background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.04)),repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 12px,transparent 12px 24px)}
-  .ph span{font-size:56px;display:block;margin-bottom:8px}
-  .on .photo{animation:pop .9s cubic-bezier(.2,1.4,.3,1) both}
-  @keyframes pop{from{transform:scale(.6) rotate(-12deg);opacity:0}}
-
-  /* Топ-5 список */
-  .top5{list-style:none;margin-top:22px;display:flex;flex-direction:column;gap:12px}
-  .top5 li{display:flex;align-items:center;gap:14px;font-weight:800;font-size:clamp(16px,4.6vw,21px);opacity:0;transform:translateX(-30px)}
-  .on .top5 li{animation:rise .6s cubic-bezier(.2,.9,.2,1) forwards}
-  .top5 b{font-family:Unbounded;font-size:clamp(26px,8vw,38px);width:1.3em}
-  .top5 em{font-style:normal;font-size:28px}
-
-  /* Финал */
-  .hearts{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:-1}
-  .hearts span{position:absolute;bottom:-40px;font-size:24px;animation:up linear infinite}
-  @keyframes up{to{transform:translateY(-120dvh) rotate(40deg);opacity:0}}
-  .btn{margin-top:28px;align-self:flex-start;background:var(--paper);color:var(--ink);border:0;border-radius:99px;padding:14px 22px;font:800 15px Manrope;cursor:pointer;pointer-events:auto}
-
-  /* Стартовый экран */
-  #intro{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end;padding:40px 28px 60px;background:radial-gradient(120% 80% at 80% 10%,#ff4f8b 0,#7b2ff7 45%,#0b0b0f 80%);cursor:pointer}
-  #intro h1{font-family:Unbounded;font-weight:900;font-size:clamp(44px,13vw,72px);line-height:.95;letter-spacing:-.03em}
-  #intro p{margin-top:14px;font-weight:600;opacity:.85}
-  #intro .tap{margin-top:34px;display:inline-flex;align-items:center;gap:10px;background:#fff;color:#000;font-weight:800;padding:14px 22px;border-radius:99px;align-self:flex-start;animation:pulse 1.6s ease-in-out infinite}
-  @keyframes pulse{50%{transform:scale(1.06)}}
-
-  /* Зоны тапа */
-  #prev,#next{position:absolute;top:0;bottom:0;z-index:10}
-  #prev{left:0;width:33%}#next{right:0;width:67%}
-  #hint{position:absolute;z-index:15;bottom:18px;left:0;right:0;text-align:center;font-size:12px;font-weight:700;opacity:.55}
-  @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-iteration-count:1!important}}
+/* ---------- Редактор ---------- */
+.ed{position:fixed;inset:0;z-index:70;background:var(--ed-bg);color:var(--ed-fg);display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto minmax(0,44dvh);grid-template-areas:"top" "stage" "strip" "panel";
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+@media (min-width:900px){.ed{grid-template-columns:132px minmax(0,1fr) 360px;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"top top top" "strip stage panel"}}
+.etop{grid-area:top;display:flex;align-items:center;gap:6px;padding:8px max(10px,env(safe-area-inset-left));border-bottom:1px solid var(--ed-line);background:var(--ed-panel);overflow-x:auto;scrollbar-width:none}
+.etop .sp{flex:1}
+@media (max-width:520px){.etop .lbl,.etop .size{display:none}}
+.etop .size{font-size:11px;color:var(--ed-mute);white-space:nowrap;font-variant-numeric:tabular-nums}
+.b{background:var(--ed-raise);border:1px solid var(--ed-line);border-radius:10px;padding:8px 11px;font-size:13px;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.b:hover{border-color:#4a4352}
+.b:disabled{opacity:.4;cursor:default}
+.b.pri{background:var(--ed-accent);border-color:var(--ed-accent);color:#fff}
+.b.dot::after{content:"";width:7px;height:7px;border-radius:50%;background:#ffd23f}
+.b.sm{padding:6px 9px;font-size:12px;border-radius:8px}
+.b.on{border-color:var(--ed-sel);background:#1d2a3a}
+.b:focus-visible,.tab:focus-visible,.thumb:focus-visible{outline:2px solid var(--ed-sel);outline-offset:2px}
+.estage{grid-area:stage;position:relative;display:grid;place-items:center;overflow:hidden;padding:14px;
+  background:radial-gradient(circle at 50% 40%,#1f1b24,#131116 70%)}
+.ecan{position:relative;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);touch-action:none;user-select:none;-webkit-user-select:none}
+.ecan .canvas{border-radius:12px}
+.ecan .el{cursor:move}
+.ecan .el.sel{outline:1.5px solid var(--ed-sel);outline-offset:2px}
+.ecan .el:not(.sel):hover{outline:1px dashed rgba(77,163,255,.7);outline-offset:2px}
+.h{position:absolute;width:16px;height:16px;background:#fff;border:2px solid var(--ed-sel);border-radius:50%;z-index:5;touch-action:none}
+.h::before{content:"";position:absolute;inset:-12px}
+.h.se{right:-10px;bottom:-10px;cursor:nwse-resize}
+.h.e{right:-10px;top:50%;margin-top:-8px;cursor:ew-resize;border-radius:4px;width:10px;right:-7px}
+.h.r{left:50%;top:-34px;margin-left:-8px;cursor:grab}
+.h.r::after{content:"";position:absolute;left:5px;top:14px;width:2px;height:18px;background:var(--ed-sel)}
+.guide{position:absolute;background:#ff4f8b;z-index:30;pointer-events:none}
+.guide.v{top:0;bottom:0;width:1px;left:50%}
+.guide.hz{left:0;right:0;height:1px;top:50%}
+.estrip{grid-area:strip;display:flex;gap:8px;padding:8px max(10px,env(safe-area-inset-left));overflow:auto;border-top:1px solid var(--ed-line);background:var(--ed-panel);scrollbar-width:thin}
+@media (min-width:900px){.estrip{flex-direction:column;border-top:0;border-right:1px solid var(--ed-line);padding:12px;align-items:center}}
+.thumb{position:relative;flex:none;width:52px;aspect-ratio:9/16;border-radius:7px;overflow:hidden;border:2px solid transparent;background:#000;padding:0}
+@media (min-width:900px){.thumb{width:86px}}
+.thumb.cur{border-color:var(--ed-sel)}
+.thumb .n{position:absolute;left:3px;top:3px;z-index:3;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:800;border-radius:5px;padding:1px 5px}
+.thumb .canvas{pointer-events:none}
+.addslide{flex:none;width:52px;aspect-ratio:9/16;border-radius:7px;border:2px dashed var(--ed-line);background:transparent;color:var(--ed-mute);font-size:24px}
+@media (min-width:900px){.addslide{width:86px}}
+.epanel{grid-area:panel;display:flex;flex-direction:column;min-height:0;background:var(--ed-panel);border-top:1px solid var(--ed-line)}
+@media (min-width:900px){.epanel{border-top:0;border-left:1px solid var(--ed-line)}}
+.tabs{display:flex;gap:2px;padding:6px max(8px,env(safe-area-inset-left)) 0;border-bottom:1px solid var(--ed-line);overflow-x:auto;scrollbar-width:none;flex:none}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:9px 10px;font-size:13px;font-weight:800;color:var(--ed-mute);white-space:nowrap}
+.tab.on{color:var(--ed-fg);border-color:var(--ed-accent)}
+.pbody{overflow:auto;padding:14px max(14px,env(safe-area-inset-right)) 30px max(14px,env(safe-area-inset-left));display:flex;flex-direction:column;gap:14px;min-height:0;flex:1}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec h4{margin:4px 0 0;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--ed-mute)}
+.row{display:flex;align-items:center;gap:10px;min-width:0}
+.row>label{flex:none;width:96px;font-size:12.5px;color:var(--ed-mute);font-weight:600}
+.row>.ctl{flex:1;min-width:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.row input[type=range]{flex:1;min-width:80px;accent-color:var(--ed-accent)}
+.row .val{font-size:12px;color:var(--ed-mute);width:38px;text-align:right;font-variant-numeric:tabular-nums}
+input[type=color]{width:38px;height:30px;border:1px solid var(--ed-line);border-radius:8px;background:none;padding:2px}
+select,input[type=text],input[type=number],input[type=url],textarea{background:var(--ed-bg);border:1px solid var(--ed-line);border-radius:9px;padding:8px 10px;font-size:14px;width:100%;min-width:0}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--ed-sel)}
+textarea{resize:vertical;min-height:70px;line-height:1.35}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.add{background:var(--ed-raise);border:1px solid var(--ed-line);border-radius:12px;padding:12px 8px;font-weight:700;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.add b{font-size:22px;line-height:1}
+.stickers{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.stickers button{background:var(--ed-raise);border:1px solid var(--ed-line);border-radius:9px;font-size:20px;aspect-ratio:1;padding:0}
+.note{font-size:12.5px;line-height:1.45;color:var(--ed-mute);background:var(--ed-bg);border:1px solid var(--ed-line);border-radius:10px;padding:10px 12px}
+.note b{color:var(--ed-fg)}
+.empty{color:var(--ed-mute);font-size:14px;text-align:center;padding:24px 8px}
+.track{display:flex;align-items:center;gap:10px;background:var(--ed-raise);border:1px solid var(--ed-line);border-radius:12px;padding:10px}
+.track .t{flex:1;min-width:0}
+.track .t div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:14px}
+.track .t small{color:var(--ed-mute);font-size:12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.toast{position:fixed;z-index:200;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);background:#fff;color:#000;font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px);text-align:center}
+.modal{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:900px){.modal{align-items:center}}
+.sheet{background:var(--ed-panel);border:1px solid var(--ed-line);border-radius:18px 18px 0 0;padding:18px max(16px,env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));width:min(560px,100%);max-height:85dvh;overflow:auto;display:flex;flex-direction:column;gap:12px}
+@media (min-width:900px){.sheet{border-radius:18px}}
+.sheet h3{margin:0;font-size:17px}
+.tpls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tpl{background:none;border:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:var(--ed-mute);align-items:center}
+.tpl .thumb{width:100%;display:block}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-iteration-count:1!important;transition:none!important}}
 </style>
-</head>
-<body>
-<div id="stage">
-  <div id="bars"></div>
-  <div id="top">
-    <div id="now"><span class="eq"><b></b><b></b><b></b></span><span id="nowText"></span></div>
-    <button id="mute" aria-label="Звук">🔊</button>
-  </div>
-  <div id="slides"></div>
-  <div id="prev"></div><div id="next"></div>
-  <div id="hint">тап справа — дальше · слева — назад · удерживай — пауза</div>
+<div id="app"></div>
+<script type="application/json" id="data">{}</script>
+<script id="appjs">
+(() => {
+'use strict';
+/* =================== утилиты =================== */
+const $ = (s, r = document) => r.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+function toast(msg, ms = 2600) { const t = h('div', 'toast'); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), ms); }
+const sget = k => { try { return sessionStorage.getItem(k); } catch { return null; } };
+const sset = (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch {} };
 
-  <div id="intro">
-    <h1>Наш 2026<br>Wrapped</h1>
-    <p>Год, который я прослушал на повторе.<br>Только для тебя 💌</p>
-    <div class="tap">▶ Нажми, чтобы начать</div>
-  </div>
-</div>
-
-<script>
-/* =========================================================
-   ВСЁ, ЧТО НУЖНО МЕНЯТЬ — ЗДЕСЬ.
-   type: 'title' | 'number' | 'text' | 'photo' | 'top' | 'final'
-   bg / fg / accent — цвета слайда
-   image — путь к фото (например 'photos/1.jpg'); если нет — будет заглушка
-   music — { src:'music/song.mp3', title:'Песня — Исполнитель', start: 30 }
-           если файла нет — играет встроенная мелодия-заглушка
-   duration — сколько секунд показывается слайд
-   ========================================================= */
-const SLIDES = [
-  { type:'title', bg:'#1db954', fg:'#0b0b0f', accent:'#ff4f8b', duration:6,
-    kicker:'Привет, любимая', title:'Этот год был про нас.', text:'Давай вспомним, как это было.',
-    music:{ title:'Наша песня — Исполнитель', src:'' } },
-
-  { type:'number', bg:'#7b2ff7', fg:'#f6f1e9', accent:'#ffd23f', duration:6,
-    kicker:'Вместе мы провели', number:'365', text:'дней. И каждый из них — мой любимый.',
-    music:{ title:'Песня №2 — Исполнитель', src:'' } },
-
-  { type:'number', bg:'#ff4f8b', fg:'#0b0b0f', accent:'#2b2bff', duration:6,
-    kicker:'Ты отправила мне', number:'12 483', text:'сообщения. Я перечитываю их, когда скучаю.',
-    music:{ title:'Песня №2 — Исполнитель', src:'' } },
-
-  { type:'photo', bg:'#ffd23f', fg:'#0b0b0f', accent:'#ff4f8b', duration:7,
-    kicker:'Момент года', image:'', emoji:'📸', title:'Тот самый день', text:'Когда я понял, что хочу быть с тобой всегда.',
-    music:{ title:'Песня №3 — Исполнитель', src:'' } },
-
-  { type:'text', bg:'#2b2bff', fg:'#f6f1e9', accent:'#1db954', duration:6,
-    kicker:'Самое частое слово', title:'«Люблю»', text:'Обогнало «спокойной ночи» и «ты где?» с большим отрывом.',
-    music:{ title:'Песня №3 — Исполнитель', src:'' } },
-
-  { type:'top', bg:'#0b0b0f', fg:'#f6f1e9', accent:'#1db954', duration:9,
-    kicker:'Твой топ-5', title:'Лучшие моменты года',
-    items:[ ['🌊','Поездка на море'], ['🍕','Ночная пицца'], ['🎬','Наш первый фильм'], ['❄️','Первый снег вместе'], ['💋','Тот поцелуй'] ],
-    music:{ title:'Песня №4 — Исполнитель', src:'' } },
-
-  { type:'photo', bg:'#ff7a1a', fg:'#0b0b0f', accent:'#7b2ff7', duration:7,
-    kicker:'Ты — мой артист №1', image:'', emoji:'👑', title:'Слушал тебя 525 600 минут', text:'Это больше, чем 99,9% всех людей на Земле.',
-    music:{ title:'Песня №4 — Исполнитель', src:'' } },
-
-  { type:'final', bg:'#e8114f', fg:'#f6f1e9', accent:'#ffd23f', duration:12,
-    kicker:'И главное', title:'Я люблю тебя.', text:'Спасибо за этот год. Давай сделаем следующий ещё лучше.',
-    music:{ title:'Наша песня — Исполнитель', src:'' } },
-];
-
-/* ========================= ДВИЖОК ========================= */
-const $ = s => document.querySelector(s);
-const slidesEl = $('#slides'), barsEl = $('#bars'), stage = $('#stage');
-let idx = 0, t0 = 0, elapsed = 0, paused = true, raf, muted = false;
-
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const deco = (s, i) => {
-  const v = i % 3;
-  if (v === 0) return `<div class="blob" style="background:${s.accent};width:340px;height:340px;right:-120px;top:-80px"></div>
-                       <div class="blob" style="background:${s.fg};opacity:.12;width:200px;height:200px;left:-70px;bottom:40px"></div>`;
-  if (v === 1) return `<div class="ring" style="color:${s.accent};width:300px;height:300px;right:-110px;bottom:-60px;border-style:dashed"></div>
-                       <div class="stripe" style="background:${s.fg};opacity:.08;top:22%"></div>`;
-  return `<div class="stripe" style="background:${s.accent};top:12%"></div><div class="stripe" style="background:${s.accent};opacity:.5;bottom:10%"></div>`;
+const FONTS = {
+  'Unbounded': "'Unbounded',sans-serif", 'Manrope': "'Manrope',sans-serif", 'Montserrat': "'Montserrat',sans-serif",
+  'Rubik': "'Rubik',sans-serif", 'Russo One': "'Russo One',sans-serif", 'Comfortaa': "'Comfortaa',sans-serif",
+  'Playfair Display': "'Playfair Display',serif", 'Lobster': "'Lobster',cursive", 'Pacifico': "'Pacifico',cursive",
+  'Caveat': "'Caveat',cursive", 'Marck Script': "'Marck Script',cursive",
 };
-const photo = s => `<div class="photo">${s.image ? `<img src="${esc(s.image)}" alt="">` : `<div class="ph"><div><span>${s.emoji||'📷'}</span>здесь будет ваше фото</div></div>`}</div>`;
+const ANIMS = { none:'Без анимации', rise:'Выплывает снизу', drop:'Падает сверху', left:'Выезжает слева', fade:'Проявляется', pop:'Выпрыгивает', zoom:'Наезд из размытия' };
+const LOOPS = { none:'Нет', float:'Парит', pulse:'Пульсирует', wiggle:'Качается', spin:'Крутится' };
+const DECOR = { none:'Без декора', blobs:'Пятна', ring:'Кольцо', stripes:'Полосы', hearts:'Летящие сердечки', stars:'Звёздочки' };
+const STICKERS = ['❤️','💖','💘','💌','🌹','✨','🔥','🥰','😘','🫶','🎵','🎧','📸','🌊','☕','🍕','🎬','❄️','🌙','⭐','👑','💋','🧸','🎁','🌸','🍷','✈️','🏠','🐱','🐶','💍','😂'];
+const HEART = 'M12 21.6S2.4 15.7.9 9.6C-.3 4.8 3 1.2 6.7 1.5 9.1 1.7 10.8 3.3 12 5.2c1.2-1.9 2.9-3.5 5.3-3.7 3.7-.3 7 3.3 5.8 8.1C21.6 15.7 12 21.6 12 21.6z';
 
-SLIDES.forEach((s, i) => {
-  const el = document.createElement('section');
-  el.className = 'slide';
-  el.style.background = s.bg; el.style.color = s.fg;
-  let body = '';
-  const k = `<div class="kicker rv">${esc(s.kicker)}</div>`;
-  if (s.type === 'title')  body = `${k}<h1 class="rv">${esc(s.title)}</h1><p class="rv">${esc(s.text)}</p>`;
-  if (s.type === 'number') body = `${k}<div class="big rv" style="color:${s.accent}">${esc(s.number)}</div><p class="rv">${esc(s.text)}</p>`;
-  if (s.type === 'text')   body = `${k}<h1 class="rv" style="color:${s.accent}">${esc(s.title)}</h1><p class="rv">${esc(s.text)}</p>`;
-  if (s.type === 'photo')  body = `${k}${photo(s)}<h2 class="rv">${esc(s.title)}</h2><p class="rv">${esc(s.text)}</p>`;
-  if (s.type === 'top')    body = `${k}<h2 class="rv">${esc(s.title)}</h2><ol class="top5">${s.items.map((it, j) =>
-                              `<li style="animation-delay:${.7 + j*.45}s"><b style="color:${s.accent}">${j+1}</b><em>${it[0]}</em>${esc(it[1])}</li>`).join('')}</ol>`;
-  if (s.type === 'final')  body = `<div class="hearts">${Array.from({length:22}, () =>
-                              `<span style="left:${Math.random()*100}%;animation-duration:${5+Math.random()*6}s;animation-delay:${-Math.random()*10}s;font-size:${16+Math.random()*26}px">❤</span>`).join('')}</div>
-                              ${k}<h1 class="rv">${esc(s.title)}</h1><p class="rv">${esc(s.text)}</p><button class="btn rv" id="again">↺ Посмотреть ещё раз</button>`;
-  el.innerHTML = deco(s, i) + body;
-  slidesEl.appendChild(el);
-  barsEl.insertAdjacentHTML('beforeend', '<div class="bar"><i></i></div>');
-});
+/* =================== данные =================== */
+function T(text, o = {}) { return Object.assign({ id: uid(), type:'text', text, x:8, y:40, w:84, rot:0, font:'Manrope', size:5, weight:600, color:'', align:'left', italic:false, upper:false, lh:1.3, ls:0, bgc:'', opacity:1, anim:'rise', delay:0, loop:'none', shadow:false }, o); }
+function I(o = {}) { return Object.assign({ id: uid(), type:'image', media:'', emoji:'📷', x:8, y:20, w:84, h:45, rot:0, radius:4, fit:'cover', frame:false, shadow:true, opacity:1, anim:'pop', delay:0, loop:'none' }, o); }
+function S(o = {}) { return Object.assign({ id: uid(), type:'shape', shape:'rect', fill:'#ffffff', x:30, y:40, w:40, h:22.5, rot:0, radius:0, opacity:1, anim:'pop', delay:0, loop:'none' }, o); }
+function slide(o = {}) { return Object.assign({ id: uid(), bg:'#1db954', bg2:'', angle:160, fg:'#0b0b0f', bgImage:'', bgDim:.35, decor:'blobs', accent:'#ff4f8b', duration:6, music:{ track:'continue', start:0 }, els:[] }, o); }
+const K = (text, y, o) => T(text, Object.assign({ y, size:3.4, weight:800, upper:true, ls:.14, anim:'rise', delay:0 }, o));
+const H1 = (text, y, o) => T(text, Object.assign({ y, size:11, font:'Unbounded', weight:900, lh:1.02, ls:-.02, delay:.35 }, o));
+const P = (text, y, o) => T(text, Object.assign({ y, size:5, weight:600, lh:1.35, delay:.8 }, o));
 
-/* ---------- Музыка: свой mp3 или встроенная мелодия-заглушка ---------- */
-const audio = new Audio(); audio.loop = true;
-let ctx, master, synthTimer, currentTrack = null;
-const CHORDS = [[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,65]]; // Am – F – C – G
-const hz = n => 440 * Math.pow(2, (n - 69) / 12);
-function note(freq, start, dur, type, vol) {
-  const o = ctx.createOscillator(), g = ctx.createGain();
-  o.type = type; o.frequency.value = freq;
-  g.gain.setValueAtTime(0, start);
-  g.gain.linearRampToValueAtTime(vol, start + .03);
-  g.gain.exponentialRampToValueAtTime(.0001, start + dur);
-  o.connect(g).connect(master); o.start(start); o.stop(start + dur + .05);
+function defaultState() {
+  return {
+    v: 1, rev: 0,
+    cover: { title:'Наш 2026\nWrapped', sub:'Год, который я прослушал на повторе.\nТолько для тебя 💌', button:'▶ Нажми, чтобы начать', c1:'#ff4f8b', c2:'#7b2ff7', c3:'#0b0b0f', fg:'#f6f1e9' },
+    settings: { hint:true },
+    tracks: [],
+    slides: [
+      slide({ bg:'#1db954', fg:'#0b0b0f', accent:'#ff4f8b', decor:'blobs', music:{ track:'synth', start:0 },
+        els:[ K('Привет, любимая', 33), H1('Этот год был про нас.', 37.5), P('Давай вспомним, как это было.', 59) ] }),
+      slide({ bg:'#7b2ff7', fg:'#f6f1e9', accent:'#ffd23f', decor:'ring',
+        els:[ K('Вместе мы провели', 37), H1('365', 41, { size:28, color:'#ffd23f', ls:-.05, lh:.9, anim:'pop' }), P('дней. И каждый из них — мой любимый.', 57) ] }),
+      slide({ bg:'#ff4f8b', fg:'#0b0b0f', accent:'#2b2bff', decor:'stripes',
+        els:[ K('Ты отправила мне', 37), H1('12 483', 41, { size:21, color:'#2b2bff', ls:-.05, lh:.9, anim:'pop' }), P('сообщения. Я перечитываю их, когда скучаю.', 55) ] }),
+      slide({ bg:'#ffd23f', fg:'#0b0b0f', accent:'#ff4f8b', decor:'blobs', duration:7,
+        els:[ K('Момент года', 12.5), I({ y:16.5, h:47, rot:-2.5, emoji:'📸' }), H1('Тот самый день', 66.5, { size:7.4 }), P('Когда я понял, что хочу быть с тобой всегда.', 73.5, { delay:1.1 }) ] }),
+      slide({ bg:'#2b2bff', fg:'#f6f1e9', accent:'#1db954', decor:'ring',
+        els:[ K('Самое частое слово', 38), H1('«Люблю»', 42, { size:13, color:'#1db954' }), P('Обогнало «спокойной ночи» и «ты где?» с большим отрывом.', 52.5) ] }),
+      slide({ bg:'#0b0b0f', fg:'#f6f1e9', accent:'#1db954', decor:'stripes', duration:9,
+        els:[ K('Твой топ-5', 24), H1('Лучшие моменты года', 28, { size:7.4 }),
+          ...[['🌊','Поездка на море'],['🍕','Ночная пицца'],['🎬','Наш первый фильм'],['❄️','Первый снег вместе'],['💋','Тот поцелуй']].flatMap(([e, t], j) => [
+            T(String(j + 1), { x:8, y:41 + j * 7.4, w:10, font:'Unbounded', weight:900, size:8.5, color:'#1db954', lh:1, anim:'left', delay:.7 + j * .45 }),
+            T(e + '  ' + t, { x:20, y:42.2 + j * 7.4, w:74, weight:800, size:5, lh:1.2, anim:'left', delay:.75 + j * .45 }) ]) ] }),
+      slide({ bg:'#ff7a1a', fg:'#0b0b0f', accent:'#7b2ff7', decor:'blobs', duration:7,
+        els:[ K('Ты — мой артист №1', 12.5), I({ y:16.5, h:47, rot:2, emoji:'👑' }), H1('Слушал тебя 525 600 минут', 66.5, { size:7.4 }), P('Это больше, чем 99,9% всех людей на Земле.', 77, { delay:1.1 }) ] }),
+      slide({ bg:'#e8114f', fg:'#f6f1e9', accent:'#ffd23f', decor:'hearts', duration:12, music:{ track:'synth', start:0 },
+        els:[ K('И главное', 36), H1('Я люблю тебя.', 40, { loop:'pulse' }), P('Спасибо за этот год. Давай сделаем следующий ещё лучше.', 57) ] }),
+    ],
+  };
 }
-function startSynth(seed) {
-  stopSynth();
-  if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); master = ctx.createGain(); master.connect(ctx.destination); }
-  master.gain.value = muted ? 0 : .18;
-  const step = .25; let n = 0, next = ctx.currentTime + .05;
-  const shift = [0, 2, -3, 5][seed % 4];
-  synthTimer = setInterval(() => {
-    while (next < ctx.currentTime + .3) {
-      const ch = CHORDS[Math.floor(n / 8) % 4].map(x => x + shift);
-      if (n % 8 === 0) ch.forEach(m => note(hz(m - 12), next, 2.1, 'triangle', .05)); // пэд
-      note(hz(ch[[0,2,1,3,2,1,3,2][n % 8]] + 12), next, .5, 'sine', .09);         // арпеджио
-      next += step; n++;
-    }
-  }, 60);
-}
-function stopSynth() { clearInterval(synthTimer); }
-function playMusic(i) {
-  const m = SLIDES[i].music || {};
-  $('#nowText').textContent = m.title || '';
-  const key = m.src || ('synth' + (m.title || ''));
-  if (key === currentTrack) { resumeMusic(); return; }
-  currentTrack = key;
-  audio.pause(); stopSynth();
-  if (m.src) {
-    audio.src = m.src; audio.currentTime = m.start || 0; audio.muted = muted;
-    audio.play().catch(() => startSynth(i));
-  } else startSynth(SLIDES.findIndex(s => (s.music||{}).title === m.title));
-}
-function pauseMusic() { audio.pause(); ctx && ctx.suspend(); }
-function resumeMusic() { if (audio.src && !audio.error) audio.play().catch(()=>{}); ctx && ctx.resume(); }
 
-/* ---------- Навигация ---------- */
-function show(i) {
-  idx = Math.max(0, Math.min(SLIDES.length - 1, i));
-  [...slidesEl.children].forEach((el, j) => el.classList.toggle('on', j === idx));
-  [...barsEl.children].forEach((b, j) => b.firstChild.style.width = j < idx ? '100%' : '0');
-  elapsed = 0; t0 = performance.now();
-  playMusic(idx);
-}
-function tick(now) {
-  if (!paused) {
-    const d = SLIDES[idx].duration * 1000, p = Math.min(1, (elapsed + now - t0) / d);
-    barsEl.children[idx].firstChild.style.width = p * 100 + '%';
-    if (p >= 1 && idx < SLIDES.length - 1) show(idx + 1);
+let PUB;
+try { PUB = JSON.parse($('#data').textContent || '{}'); } catch { PUB = {}; }
+if (!PUB.state) PUB = { state: defaultState(), media: {} };
+PUB.media = PUB.media || {};
+
+/* =================== отрисовка слайда =================== */
+function decorHTML(s, animate) {
+  const a = s.accent, f = s.fg;
+  switch (s.decor) {
+    case 'blobs': return `<div class="deco blob" style="background:${a};width:90cqw;height:90cqw;right:-32cqw;top:-20cqw;opacity:.9"></div><div class="deco blob" style="background:${f};opacity:.12;width:53cqw;height:53cqw;left:-18cqw;bottom:8%"></div>`;
+    case 'ring': return `<div class="deco ring" style="color:${a};width:80cqw;height:80cqw;right:-30cqw;bottom:-14cqw;opacity:.85"></div><div class="deco stripe" style="background:${f};opacity:.08;top:22%"></div>`;
+    case 'stripes': return `<div class="deco stripe" style="background:${a};top:12%"></div><div class="deco stripe" style="background:${a};opacity:.5;bottom:10%"></div>`;
+    case 'hearts': return Array.from({ length: 22 }, (_, i) => `<span class="deco heart" style="color:${a};left:${(i * 37) % 100}%;font-size:${4 + (i * 7) % 7}cqw;opacity:${animate ? 1 : .5};${animate ? `animation-duration:${5 + (i * 13) % 6}s;animation-delay:-${(i * 17) % 10}s` : `bottom:${(i * 29) % 90}%`}">❤</span>`).join('');
+    case 'stars': return Array.from({ length: 18 }, (_, i) => `<span class="deco star" style="color:${a};left:${(i * 41) % 96}%;top:${(i * 23) % 96}%;animation-delay:-${(i * .37).toFixed(2)}s">✦</span>`).join('');
+    default: return '';
   }
-  raf = requestAnimationFrame(tick);
 }
-function pause() { if (paused) return; paused = true; elapsed += performance.now() - t0; stage.classList.add('paused'); pauseMusic(); }
-function play()  { if (!paused) return; paused = false; t0 = performance.now(); stage.classList.remove('paused'); resumeMusic(); }
+function elInner(e, st, media) {
+  if (e.type === 'text') {
+    const txt = esc(e.text);
+    return `<div class="tx" style="font-family:${FONTS[e.font] || FONTS.Manrope};font-size:${e.size}cqw;font-weight:${e.weight};color:${e.color || 'inherit'};text-align:${e.align};font-style:${e.italic ? 'italic' : 'normal'};text-transform:${e.upper ? 'uppercase' : 'none'};line-height:${e.lh};letter-spacing:${e.ls}em;${e.shadow ? 'text-shadow:0 .08em .35em rgba(0,0,0,.45);' : ''}">${e.bgc ? `<span class="hl" style="background:${e.bgc}">${txt}</span>` : txt}</div>`;
+  }
+  if (e.type === 'image') {
+    const src = e.media && media[e.media];
+    const box = `border-radius:${e.radius}cqw;${e.shadow ? 'box-shadow:0 4cqw 12cqw rgba(0,0,0,.35);' : ''}`;
+    const inner = src ? `<img src="${src}" alt="" style="object-fit:${e.fit}">` : `<div><b>${esc(e.emoji || '📷')}</b>здесь будет фото</div>`;
+    if (e.frame) return `<div style="width:100%;height:100%;background:#fff;padding:3cqw 3cqw 11cqw;${box}"><div class="im${src ? '' : ' ph'}" style="border-radius:1cqw">${inner}</div></div>`;
+    return `<div class="im${src ? '' : ' ph'}" style="${box}">${inner}</div>`;
+  }
+  if (e.type === 'shape') {
+    if (e.shape === 'heart') return `<div class="shp"><svg viewBox="0 0 24 23" preserveAspectRatio="none"><path d="${HEART}" fill="${e.fill}"/></svg></div>`;
+    return `<div class="shp" style="background:${e.fill};border-radius:${e.shape === 'circle' ? '50%' : e.radius + 'cqw'}"></div>`;
+  }
+  return '';
+}
+function renderSlide(s, host, media, { animate = false, editable = false, sel = null } = {}) {
+  host.className = 'canvas' + (animate ? ' play' : '');
+  host.style.background = s.bg2 ? `linear-gradient(${s.angle}deg, ${s.bg}, ${s.bg2})` : s.bg;
+  host.style.color = s.fg;
+  let html = '';
+  if (s.bgImage && media[s.bgImage]) html += `<div class="bgimg" style="background-image:url('${media[s.bgImage]}')"></div><div class="dim" style="opacity:${s.bgDim}"></div>`;
+  html += decorHTML(s, animate);
+  host.innerHTML = html;
+  for (const e of s.els) {
+    const n = h('div', 'el' + (e.type === 'text' ? ' t' : '') + (e.id === sel ? ' sel' : ''));
+    n.dataset.id = e.id;
+    placeEl(n, e);
+    const inn = h('div', 'in'), lp = h('div', 'lp', elInner(e, null, media));
+    if (animate && e.anim !== 'none') inn.style.animation = `a-${e.anim} .85s cubic-bezier(.2,.9,.2,1) ${e.delay}s both`;
+    if (animate && e.loop !== 'none') {
+      const d = { float:'3s ease-in-out', pulse:'1.3s ease-in-out', wiggle:'.9s ease-in-out', spin:'10s linear' }[e.loop];
+      lp.style.animation = `l-${e.loop} ${d} ${e.loop === 'spin' ? '' : 'alternate'} infinite`;
+    }
+    inn.appendChild(lp); n.appendChild(inn);
+    if (editable && e.id === sel) n.insertAdjacentHTML('beforeend', `<div class="h se" data-h="se"></div><div class="h r" data-h="r"></div>${e.type === 'text' ? '<div class="h e" data-h="e"></div>' : ''}`);
+    host.appendChild(n);
+  }
+}
+function placeEl(n, e) {
+  n.style.left = e.x + '%'; n.style.top = e.y + '%'; n.style.width = e.w + '%';
+  n.style.height = e.type === 'text' ? '' : e.h + '%';
+  n.style.transform = e.rot ? `rotate(${e.rot}deg)` : '';
+  n.style.opacity = e.opacity;
+}
 
-$('#intro').onclick = () => { $('#intro').remove(); paused = false; show(0); requestAnimationFrame(tick); };
-
-let holdTimer, held = false;
-['prev','next'].forEach(id => {
-  const z = $('#' + id);
-  z.addEventListener('pointerdown', () => { held = false; holdTimer = setTimeout(() => { held = true; pause(); }, 220); });
-  z.addEventListener('pointerup', e => {
-    clearTimeout(holdTimer);
-    if (held) { play(); return; }
-    if (hitAgain(e)) { show(0); return; }
-    show(id === 'next' ? idx + 1 : idx - 1);
-  });
-  z.addEventListener('pointerleave', () => { clearTimeout(holdTimer); if (held) { held = false; play(); } });
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight') show(idx + 1);
-  if (e.key === 'ArrowLeft') show(idx - 1);
-  if (e.key === ' ') paused ? play() : pause();
-});
-$('#mute').onclick = e => {
-  e.stopPropagation(); muted = !muted;
-  audio.muted = muted; if (master) master.gain.value = muted ? 0 : .18;
-  $('#mute').textContent = muted ? '🔇' : '🔊';
+/* =================== музыка =================== */
+const Music = {
+  audio: new Audio(), key: null, muted: false, ctx: null, master: null, timer: null,
+  hz: n => 440 * Math.pow(2, (n - 69) / 12),
+  note(f, t, d, type, v) { const o = this.ctx.createOscillator(), g = this.ctx.createGain(); o.type = type; o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(this.master); o.start(t); o.stop(t + d + .05); },
+  synth() {
+    this.stopSynth();
+    if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return; this.ctx = new C(); this.master = this.ctx.createGain(); this.master.connect(this.ctx.destination); }
+    this.ctx.resume(); this.master.gain.value = this.muted ? 0 : .18;
+    const CH = [[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,65]]; let n = 0, next = this.ctx.currentTime + .05;
+    this.timer = setInterval(() => { while (next < this.ctx.currentTime + .3) { const ch = CH[Math.floor(n / 8) % 4]; if (n % 8 === 0) ch.forEach(m => this.note(this.hz(m - 12), next, 2.1, 'triangle', .05)); this.note(this.hz(ch[[0,2,1,3,2,1,3,2][n % 8]] + 12), next, .5, 'sine', .09); next += .25; n++; } }, 60);
+  },
+  stopSynth() { clearInterval(this.timer); this.timer = null; },
+  resolve(st, i) { for (let j = i; j >= 0; j--) { const m = st.slides[j].music || {}; if (m.track !== 'continue') return m; } return { track:'' }; },
+  play(st, media, i) {
+    const m = this.resolve(st, i), key = m.track + '@' + (m.start || 0);
+    const tr = st.tracks.find(t => t.id === m.track);
+    if (key !== this.key) {
+      this.key = key; this.audio.pause(); this.stopSynth();
+      if (m.track === 'synth') this.synth();
+      else if (tr && media[tr.media]) { this.audio.src = media[tr.media]; this.audio.loop = true; this.audio.muted = this.muted;
+        const go = () => { try { this.audio.currentTime = m.start || 0; } catch {} this.audio.play().catch(() => {}); };
+        this.audio.readyState >= 1 ? go() : this.audio.addEventListener('loadedmetadata', go, { once: true }); this.audio.play().catch(() => {}); }
+    } else this.resume();
+    return m.track === 'synth' ? { name:'Мелодия' } : tr ? { name: tr.name + (tr.artist ? ' — ' + tr.artist : ''), spotify: tr.spotify } : null;
+  },
+  pause() { this.audio.pause(); this.ctx && this.ctx.suspend(); },
+  resume() { if (this.audio.src && this.key && !this.key.startsWith('synth') && !this.key.startsWith('@')) this.audio.play().catch(() => {}); this.ctx && this.timer && this.ctx.resume(); },
+  stop() { this.audio.pause(); this.stopSynth(); this.key = null; },
+  setMuted(v) { this.muted = v; this.audio.muted = v; if (this.master) this.master.gain.value = v ? 0 : .18; },
 };
-// кнопка «ещё раз» на финале: проверяем, попал ли тап в неё
-function hitAgain(e) {
-  const btn = document.getElementById('again'); if (!btn || idx !== SLIDES.length - 1) return false;
-  const r = btn.getBoundingClientRect();
-  return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+
+/* =================== просмотр =================== */
+let V = null;
+function openViewer(st, media, { start = 0, preview = false, skipCover = false } = {}) {
+  closeViewer();
+  const root = h('div', 'viewer');
+  root.innerHTML = `<div class="vstage"><div class="vbars">${st.slides.map(() => '<div><i></i></div>').join('')}</div>
+    <div class="vtop"><a class="now" hidden target="_blank" rel="noopener"><span class="eq"><b></b><b></b><b></b></span><span class="nt"></span></a><span style="flex:1"></span>
+    ${preview ? '<button class="rbtn" data-a="close">✕ Закрыть</button>' : ''}<button class="rbtn" data-a="mute" aria-label="Звук">${Music.muted ? '🔇' : '🔊'}</button></div>
+    <div class="vzone p"></div><div class="vzone n"></div>
+    ${st.settings.hint ? '<div class="vhint">тап справа — дальше · слева — назад · удерживай — пауза</div>' : ''}</div>`;
+  document.getElementById('app').appendChild(root);
+  const stage = $('.vstage', root);
+  V = { st, media, root, stage, idx: 0, t0: 0, el: 0, paused: true, host: null, raf: 0 };
+  const bars = [...$('.vbars', root).children];
+
+  function show(i) {
+    V.idx = clamp(i, 0, st.slides.length - 1);
+    bars.forEach((b, j) => b.firstChild.style.width = j < V.idx ? '100%' : '0');
+    const host = h('div'); host.style.opacity = '0';
+    renderSlide(st.slides[V.idx], host, media, { animate: true });
+    stage.insertBefore(host, $('.vbars', stage));
+    requestAnimationFrame(() => host.style.opacity = '1');
+    const old = V.host; V.host = host; if (old) { old.style.opacity = '0'; setTimeout(() => old.remove(), 460); }
+    const again = $('.again', stage); if (again) again.remove();
+    if (V.idx === st.slides.length - 1) { const b = h('button', 'again', '↺ Посмотреть ещё раз'); b.onclick = e => { e.stopPropagation(); show(0); }; stage.appendChild(b); }
+    V.el = 0; V.t0 = performance.now();
+    const info = Music.play(st, media, V.idx), now = $('.now', root);
+    now.hidden = !info;
+    if (info) { $('.nt', now).innerHTML = esc(info.name) + (info.spotify ? '<span class="sp">Spotify ↗</span>' : ''); if (info.spotify) now.href = info.spotify; else now.removeAttribute('href'); }
+  }
+  function tick(t) {
+    if (!V) return;
+    if (!V.paused) { const p = Math.min(1, (V.el + t - V.t0) / (st.slides[V.idx].duration * 1000)); bars[V.idx].firstChild.style.width = p * 100 + '%'; if (p >= 1 && V.idx < st.slides.length - 1) show(V.idx + 1); }
+    V.raf = requestAnimationFrame(tick);
+  }
+  V.pause = () => { if (V.paused) return; V.paused = true; V.el += performance.now() - V.t0; stage.classList.add('paused'); Music.pause(); };
+  V.play = () => { if (!V.paused) return; V.paused = false; V.t0 = performance.now(); stage.classList.remove('paused'); Music.resume(); };
+  V.show = show;
+  let holdT, held = false;
+  for (const z of root.querySelectorAll('.vzone')) {
+    z.addEventListener('pointerdown', () => { held = false; holdT = setTimeout(() => { held = true; V.pause(); }, 220); });
+    z.addEventListener('pointerup', () => { clearTimeout(holdT); if (held) { held = false; V.play(); return; } show(V.idx + (z.classList.contains('n') ? 1 : -1)); });
+    z.addEventListener('pointerleave', () => { clearTimeout(holdT); if (held) { held = false; V.play(); } });
+  }
+  root.addEventListener('click', e => {
+    const a = e.target.closest('[data-a]'); if (!a) return;
+    if (a.dataset.a === 'mute') { Music.setMuted(!Music.muted); a.textContent = Music.muted ? '🔇' : '🔊'; }
+    if (a.dataset.a === 'close') { closeViewer(); Ed.reopen(); }
+  });
+  const begin = () => { V.paused = false; show(start); V.raf = requestAnimationFrame(tick); };
+  if (skipCover) begin();
+  else {
+    const c = st.cover, cov = h('div', 'cover');
+    cov.style.background = `radial-gradient(120% 80% at 80% 10%, ${c.c1} 0, ${c.c2} 45%, ${c.c3} 80%)`; cov.style.color = c.fg;
+    cov.innerHTML = `<h1>${esc(c.title)}</h1><p>${esc(c.sub)}</p><div class="tap">${esc(c.button)}</div>`;
+    cov.onclick = () => { cov.remove(); begin(); };
+    stage.appendChild(cov);
+  }
 }
+function closeViewer() { if (!V) return; cancelAnimationFrame(V.raf); V.root.remove(); V = null; Music.stop(); }
+document.addEventListener('keydown', e => {
+  if (!V || Ed.open) return;
+  if (e.key === 'ArrowRight') V.show(V.idx + 1);
+  if (e.key === 'ArrowLeft') V.show(V.idx - 1);
+  if (e.key === ' ') { e.preventDefault(); V.paused ? V.play() : V.pause(); }
+  if (e.key === 'Escape' && Ed.previewing) { closeViewer(); Ed.reopen(); }
+});
+
+/* =================== хранилище черновика (IndexedDB) =================== */
+const IDB = {
+  db: null,
+  async open() { if (this.db) return this.db; return this.db = await new Promise((res, rej) => { const r = indexedDB.open('love-wrapped', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
+  async get(k) { try { const db = await this.open(); return await new Promise(res => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); } catch { return null; } },
+  async set(k, v) { try { const db = await this.open(); await new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); } catch {} },
+};
+
+/* =================== медиа: фото и mp3 =================== */
+const readURL = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
+async function compressImage(file, max = 1280) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const png = /png|gif|webp/.test(file.type) && file.size < 600000;
+    return { url: c.toDataURL(png ? 'image/png' : 'image/jpeg', .82), ratio: c.height / c.width };
+  } finally { URL.revokeObjectURL(url); }
+}
+function clipMp3(buf, dur, start, len) {
+  const u = new Uint8Array(buf); let off = 0;
+  if (u[0] === 0x49 && u[1] === 0x44 && u[2] === 0x33) off = 10 + ((u[6] & 127) << 21 | (u[7] & 127) << 14 | (u[8] & 127) << 7 | (u[9] & 127));
+  const n = u.length - off, a = off + Math.floor(n * start / dur), b = Math.min(u.length, off + Math.ceil(n * (start + len) / dur));
+  let s = a; while (s < b - 1 && !(u[s] === 0xFF && (u[s + 1] & 0xE0) === 0xE0)) s++;
+  return new Blob([u.slice(s, b)], { type: 'audio/mpeg' });
+}
+const fmtT = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+const fmtMB = b => (b / 1048576).toFixed(1).replace('.', ',') + ' МБ';
+function pick(accept) { return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.onchange = () => res(i.files[0] || null); i.click(); }); }
+
+/* =================== редактор =================== */
+const Ed = {
+  open: false, previewing: false, st: null, media: null, cur: 0, sel: null, tab: 'add',
+  hist: [], fut: [], lastKey: '', lastT: 0, dirty: false, pending: null, saveT: 0, art: null,
+
+  async start() {
+    const d = await IDB.get('draft');
+    if (d && d.baseRev === PUB.state.rev) { this.st = d.state; this.media = d.media; this.dirty = !!d.dirty; }
+    else { this.st = clone(PUB.state); this.media = Object.assign({}, PUB.media); this.dirty = false; }
+    this.cur = clamp(+(sget('edSlide') || 0), 0, this.st.slides.length - 1);
+    closeViewer(); this.build(); this.open = true;
+  },
+  reopen() { this.previewing = false; this.build(); this.open = true; },
+  build() {
+    const old = $('.ed'); if (old) old.remove();
+    const r = h('div', 'ed');
+    r.innerHTML = `<div class="etop">
+        <button class="b" data-a="exit" title="Как увидит она">👁<span class="lbl"> Просмотр</span></button>
+        <button class="b" data-a="undo" title="Отменить">↶</button><button class="b" data-a="redo" title="Повторить">↷</button>
+        <span class="sp"></span><span class="size"></span>
+        <button class="b" data-a="preview" title="Проиграть с этого слайда">▶<span class="lbl"> Слайд</span></button>
+        <button class="b pri" data-a="publish">Опубликовать</button></div>
+      <div class="estrip"></div><div class="estage"><div class="ecan"></div></div>
+      <div class="epanel"><div class="tabs">${[['add','＋ Добавить'],['el','Элемент'],['slide','Слайд'],['music','Музыка'],['cover','Обложка']].map(([k, t]) => `<button class="tab" data-tab="${k}">${t}</button>`).join('')}</div><div class="pbody"></div></div>`;
+    document.getElementById('app').appendChild(r);
+    this.r = r; this.can = $('.ecan', r);
+    r.addEventListener('click', e => this.onClick(e));
+    r.addEventListener('input', e => this.onInput(e));
+    r.addEventListener('change', e => this.onInput(e, true));
+    this.bindCanvas();
+    new ResizeObserver(() => this.fit()).observe($('.estage', r));
+    this.renderAll();
+  },
+  get slide() { return this.st.slides[this.cur]; },
+  get el() { return this.slide.els.find(e => e.id === this.sel) || null; },
+
+  /* ----- история и сохранение ----- */
+  snap() { return JSON.stringify(this.st); },
+  push(key) { const now = Date.now(); if (key && key === this.lastKey && now - this.lastT < 1500) { this.lastT = now; return; } this.lastKey = key || ''; this.lastT = now; this.hist.push(this.snap()); if (this.hist.length > 80) this.hist.shift(); this.fut = []; },
+  undo() { if (!this.hist.length) return; this.fut.push(this.snap()); this.st = JSON.parse(this.hist.pop()); this.lastKey = ''; this.after(true); },
+  redo() { if (!this.fut.length) return; this.hist.push(this.snap()); this.st = JSON.parse(this.fut.pop()); this.lastKey = ''; this.after(true); },
+  after(full) {
+    this.cur = clamp(this.cur, 0, this.st.slides.length - 1);
+    if (this.sel && !this.el) this.sel = null;
+    this.dirty = true; this.renderCanvas(); this.renderThumb(this.cur);
+    if (full) { this.renderStrip(); this.renderPanel(); }
+    this.renderTop();
+    clearTimeout(this.saveT); this.saveT = setTimeout(() => this.saveDraft(), 700);
+  },
+  saveDraft() { return IDB.set('draft', { baseRev: PUB.state.rev, state: this.st, media: this.usedMedia(), dirty: this.dirty }); },
+  usedMedia() {
+    const ids = new Set();
+    for (const s of this.st.slides) { if (s.bgImage) ids.add(s.bgImage); for (const e of s.els) if (e.media) ids.add(e.media); }
+    for (const t of this.st.tracks) ids.add(t.media);
+    const out = {}; for (const id of ids) if (this.media[id]) out[id] = this.media[id]; return out;
+  },
+  buildHTML() {
+    const css = $('#css').textContent, code = $('#appjs').textContent, gf = $('#gf').outerHTML;
+    const json = JSON.stringify({ state: this.st, media: this.usedMedia() }).replace(/</g, '\\u003c');
+    return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>'
+      + '<title>' + esc(document.title || 'Наш 2026 Wrapped') + '</title>\n' + gf + '\n<style id="css">' + css + '</style>\n<div id="app"></div>\n<script type="application/json" id="data">' + json + '<\/script>\n<script id="appjs">' + code + '<\/script></body></html>';
+  },
+  async publish() {
+    const art = this.art || (window.claude && window.claude.use ? await window.claude.use('artifact').catch(() => null) : null);
+    if (!art) { toast('Опубликовать можно только со страницы на claude.ai, где ты владелец'); return; }
+    const html = this.buildHTML();
+    if (html.length > 15.5 * 1048576) { toast('Слишком тяжело: ' + fmtMB(html.length) + ' из 16 МБ. Убери пару фото или укороти песни'); return; }
+    const btn = $('[data-a=publish]', this.r); btn.disabled = true; btn.textContent = 'Публикую…';
+    const newRev = PUB.state.rev + 1;
+    this.st.rev = newRev; this.dirty = false;
+    await IDB.set('draft', { baseRev: newRev, state: this.st, media: this.usedMedia(), dirty: false });
+    sset('reopenEditor', '1'); sset('edSlide', String(this.cur));
+    try { await art.publish(this.buildHTML()); toast('Опубликовано ❤'); }
+    catch (err) {
+      const code = err && err.code;
+      this.st.rev = PUB.state.rev; this.dirty = true; sset('reopenEditor', null); this.saveDraft();
+      btn.disabled = false; btn.textContent = 'Опубликовать';
+      toast({ conflict:'Кто-то опубликовал раньше — страница обновится', too_large:'Страница слишком большая — убери часть фото или музыки', rate_limited:'Слишком часто, подожди минуту и попробуй ещё раз', not_writer:'У тебя нет прав на изменение этой страницы', not_granted:'Публикация недоступна в этом окне — открой страницу на claude.ai' }[code] || ('Не получилось опубликовать: ' + (code || 'ошибка')), 4500);
+    }
+  },
+
+  /* ----- отрисовка ----- */
+  renderAll() { this.renderTop(); this.renderStrip(); this.renderCanvas(); this.renderPanel(); this.fit(); },
+  renderTop() {
+    $('[data-a=undo]', this.r).disabled = !this.hist.length; $('[data-a=redo]', this.r).disabled = !this.fut.length;
+    $('[data-a=publish]', this.r).classList.toggle('dot', this.dirty);
+    clearTimeout(this.sizeT); this.sizeT = setTimeout(() => { const m = this.usedMedia(); let b = 120000; for (const k in m) b += m[k].length; $('.size', this.r).textContent = fmtMB(b) + ' / 16'; }, 300);
+  },
+  fit() {
+    const st = $('.estage', this.r); if (!st) return;
+    const W = st.clientWidth - 28, H = st.clientHeight - 28 - 30, w = Math.max(80, Math.min(W, H * 9 / 16));
+    this.can.style.width = w + 'px'; this.can.style.height = w * 16 / 9 + 'px';
+  },
+  renderCanvas() { let host = $('.canvas', this.can); if (!host) { host = h('div'); this.can.appendChild(host); } renderSlide(this.slide, host, this.media, { editable: true, sel: this.sel }); },
+  renderStrip() {
+    const s = $('.estrip', this.r); s.innerHTML = '';
+    this.st.slides.forEach((sl, i) => {
+      const b = h('button', 'thumb' + (i === this.cur ? ' cur' : '')); b.dataset.slide = i; b.setAttribute('aria-label', 'Слайд ' + (i + 1));
+      b.innerHTML = `<span class="n">${i + 1}</span>`; const c = h('div'); b.appendChild(c); renderSlide(sl, c, this.media); s.appendChild(b);
+    });
+    const add = h('button', 'addslide', '＋'); add.dataset.a = 'newslide'; add.title = 'Новый слайд'; s.appendChild(add);
+    const cur = s.children[this.cur]; cur && cur.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  },
+  renderThumb(i) { clearTimeout(this.thT); this.thT = setTimeout(() => { const b = $(`.thumb[data-slide="${i}"] .canvas`, this.r); if (b) renderSlide(this.st.slides[i], b, this.media); }, 120); },
+  selectSlide(i) { this.cur = clamp(i, 0, this.st.slides.length - 1); this.sel = null; sset('edSlide', String(this.cur)); if (this.tab === 'el') this.tab = 'slide'; this.renderStrip(); this.renderCanvas(); this.renderPanel(); },
+  select(id) {
+    if (id === this.sel) return; this.sel = id;
+    if (id && this.tab !== 'el') this.tab = 'el'; else if (!id && this.tab === 'el') this.tab = 'slide';
+    this.renderCanvas(); this.renderPanel();
+  },
+
+  /* ----- панель свойств ----- */
+  renderPanel() {
+    for (const t of this.r.querySelectorAll('.tab')) t.classList.toggle('on', t.dataset.tab === this.tab);
+    const p = $('.pbody', this.r); p.innerHTML = this['p_' + this.tab]();
+    p.scrollTop = 0;
+  },
+  ctl: {
+    color: (t, k, v) => `<input type="color" data-t="${t}" data-k="${k}" value="${/^#[0-9a-f]{6}$/i.test(v) ? v : '#ffffff'}">`,
+    range: (t, k, v, a, b, s, u = '') => `<input type="range" data-t="${t}" data-k="${k}" min="${a}" max="${b}" step="${s}" value="${v}"><span class="val" data-v="${t}.${k}">${(+v).toFixed(s < 1 ? (s < .1 ? 2 : 1) : 0)}${u}</span>`,
+    sel: (t, k, v, opts, st = () => '') => `<select data-t="${t}" data-k="${k}">${Object.entries(opts).map(([a, b]) => `<option value="${esc(a)}" ${a == v ? 'selected' : ''} style="${st(a)}">${esc(b)}</option>`).join('')}</select>`,
+    chk: (t, k, v, label) => `<label class="b sm${v ? ' on' : ''}"><input type="checkbox" data-t="${t}" data-k="${k}" ${v ? 'checked' : ''} hidden>${label}</label>`,
+  },
+  row: (label, ctl) => `<div class="row"><label>${label}</label><div class="ctl">${ctl}</div></div>`,
+
+  p_add() {
+    return `<div class="sec"><h4>Текст</h4><div class="grid3">
+        <button class="add" data-add="h1"><b>Aa</b>Заголовок</button><button class="add" data-add="p"><b>¶</b>Абзац</button><button class="add" data-add="num"><b>365</b>Большая цифра</button></div></div>
+      <div class="sec"><h4>Фото и фигуры</h4><div class="grid3">
+        <button class="add" data-add="img"><b>🖼</b>Фото</button><button class="add" data-add="polaroid"><b>🎞</b>Полароид</button><button class="add" data-add="rect"><b>▬</b>Плашка</button>
+        <button class="add" data-add="circle"><b>●</b>Круг</button><button class="add" data-add="heart"><b>♥</b>Сердце</button><button class="add" data-add="label"><b>🏷</b>Надпись на плашке</button></div></div>
+      <div class="sec"><h4>Стикеры</h4><div class="stickers">${STICKERS.map(s => `<button data-sticker="${s}">${s}</button>`).join('')}</div></div>
+      <div class="note"><b>Как редактировать:</b> нажми на элемент, чтобы выбрать, и тяни, чтобы двигать. Белый кружок в углу меняет размер, кружок сверху поворачивает. Двойное нажатие открывает редактирование текста.</div>`;
+  },
+  p_el() {
+    const e = this.el, c = this.ctl, R = this.row;
+    if (!e) return `<div class="empty">Нажми на текст, фото или стикер на слайде, чтобы его изменить.</div>`;
+    let html = '';
+    if (e.type === 'text') html += `<div class="sec"><textarea data-t="el" data-k="text" rows="3" id="eltext">${esc(e.text)}</textarea>
+      ${R('Шрифт', c.sel('el', 'font', e.font, Object.fromEntries(Object.keys(FONTS).map(f => [f, f])), f => `font-family:${FONTS[f]}`))}
+      ${R('Размер', c.range('el', 'size', e.size, 2, 40, .1))}
+      ${R('Жирность', c.sel('el', 'weight', e.weight, { 400:'Обычный', 600:'Полужирный', 800:'Жирный', 900:'Чёрный' }))}
+      ${R('Цвет', c.color('el', 'color', e.color || this.slide.fg) + `<button class="b sm" data-a="colorauto">как у слайда</button>`)}
+      ${R('Выравнивание', ['left', 'center', 'right'].map(a => `<button class="b sm${e.align === a ? ' on' : ''}" data-align="${a}">${{ left:'⟸', center:'≡', right:'⟹' }[a]}</button>`).join(''))}
+      ${R('Стиль', c.chk('el', 'italic', e.italic, '<i>Курсив</i>') + c.chk('el', 'upper', e.upper, 'КАПС') + c.chk('el', 'shadow', e.shadow, 'Тень'))}
+      ${R('Межстрочный', c.range('el', 'lh', e.lh, .8, 2, .05))}
+      ${R('Разрядка', c.range('el', 'ls', e.ls, -.08, .3, .01))}
+      ${R('Плашка', c.chk('el', 'bgcOn', !!e.bgc, 'Вкл') + (e.bgc ? c.color('el', 'bgc', e.bgc) : ''))}</div>`;
+    if (e.type === 'image') html += `<div class="sec"><div class="grid2"><button class="b" data-a="replaceimg">🖼 ${e.media ? 'Заменить фото' : 'Загрузить фото'}</button><button class="b" data-a="imgratio">↕ Пропорции фото</button></div>
+      ${R('Скругление', c.range('el', 'radius', e.radius, 0, 20, .5))}
+      ${R('Вписать', c.sel('el', 'fit', e.fit, { cover:'Заполнить (обрезать)', contain:'Целиком' }))}
+      ${R('Стиль', c.chk('el', 'frame', e.frame, 'Рамка-полароид') + c.chk('el', 'shadow', e.shadow, 'Тень'))}
+      ${e.media ? '' : R('Заглушка', `<input type="text" data-t="el" data-k="emoji" value="${esc(e.emoji)}">`)}</div>`;
+    if (e.type === 'shape') html += `<div class="sec">${R('Форма', c.sel('el', 'shape', e.shape, { rect:'Плашка', circle:'Круг', heart:'Сердце' }))}${R('Цвет', c.color('el', 'fill', e.fill))}${e.shape === 'rect' ? R('Скругление', c.range('el', 'radius', e.radius, 0, 20, .5)) : ''}</div>`;
+    html += `<div class="sec"><h4>Анимация</h4>${R('Появление', c.sel('el', 'anim', e.anim, ANIMS))}${R('Задержка, с', c.range('el', 'delay', e.delay, 0, 5, .05))}${R('Потом', c.sel('el', 'loop', e.loop, LOOPS))}</div>
+      <div class="sec"><h4>Положение</h4>${R('Поворот', c.range('el', 'rot', e.rot, -180, 180, 1, '°'))}${R('Прозрачность', c.range('el', 'opacity', e.opacity, .1, 1, .05))}
+      <div class="chips"><button class="b sm" data-a="center">⊕ По центру</button><button class="b sm" data-a="front">⬆ Вперёд</button><button class="b sm" data-a="back">⬇ Назад</button><button class="b sm" data-a="dup">⧉ Копия</button><button class="b sm" data-a="del">🗑 Удалить</button></div></div>`;
+    return html;
+  },
+  p_slide() {
+    const s = this.slide, c = this.ctl, R = this.row, n = this.st.slides.length;
+    const mopts = { continue:'↪ Продолжить предыдущую', '':'🔇 Тишина', synth:'♪ Встроенная мелодия' };
+    for (const t of this.st.tracks) mopts[t.id] = '🎵 ' + t.name;
+    return `<div class="sec"><h4>Слайд ${this.cur + 1} из ${n}</h4><div class="chips">
+        <button class="b sm" data-a="sup" ${this.cur ? '' : 'disabled'}>← Раньше</button><button class="b sm" data-a="sdown" ${this.cur < n - 1 ? '' : 'disabled'}>Позже →</button>
+        <button class="b sm" data-a="sdup">⧉ Копия</button><button class="b sm" data-a="sdel" ${n > 1 ? '' : 'disabled'}>🗑 Удалить</button></div>
+        ${R('Длительность', c.range('slide', 'duration', s.duration, 2, 30, .5, ' с'))}</div>
+      <div class="sec"><h4>Музыка на слайде</h4>${R('Трек', c.sel('slide', 'mtrack', s.music.track, mopts))}
+        ${this.st.tracks.some(t => t.id === s.music.track) ? R('Начать с, с', c.range('slide', 'mstart', s.music.start || 0, 0, Math.max(1, Math.floor((this.st.tracks.find(t => t.id === s.music.track) || {}).len || 60) - 1), 1)) : ''}
+        <div class="note">Если музыка та же, что на прошлом слайде, она не перезапускается, а играет дальше. Свои песни добавляются во вкладке «Музыка».</div></div>
+      <div class="sec"><h4>Фон</h4>${R('Цвет', c.color('slide', 'bg', s.bg) + c.chk('slide', 'gradOn', !!s.bg2, 'Градиент') + (s.bg2 ? c.color('slide', 'bg2', s.bg2) : ''))}
+        ${s.bg2 ? R('Угол', c.range('slide', 'angle', s.angle, 0, 360, 5, '°')) : ''}
+        ${R('Текст', c.color('slide', 'fg', s.fg))}
+        ${R('Фото фоном', `<button class="b sm" data-a="bgimg">${s.bgImage ? 'Заменить' : 'Загрузить'}</button>${s.bgImage ? '<button class="b sm" data-a="bgdel">Убрать</button>' : ''}`)}
+        ${s.bgImage ? R('Затемнение', c.range('slide', 'bgDim', s.bgDim, 0, .9, .05)) : ''}
+        ${R('Декор', c.sel('slide', 'decor', s.decor, DECOR))}${R('Цвет декора', c.color('slide', 'accent', s.accent))}
+        <button class="b sm" data-a="bgall">Применить этот фон ко всем слайдам</button></div>`;
+  },
+  p_music() {
+    const R = this.row, p = this.pending;
+    let html = `<div class="note"><b>Про Spotify.</b> Spotify не разрешает встраивать свои треки в чужие страницы, поэтому песню нужно загрузить файлом (mp3). Ссылку на трек в Spotify можно прикрепить: на слайде появится кнопка «Spotify ↗», и она откроет песню в приложении.</div>`;
+    if (p) html += `<div class="sec" style="background:var(--ed-raise);border:1px solid var(--ed-line);border-radius:14px;padding:12px">
+        <h4>Новый трек · ${esc(fmtT(p.dur))}</h4>
+        <input type="text" data-t="pend" data-k="name" value="${esc(p.name)}" placeholder="Название">
+        <input type="text" data-t="pend" data-k="artist" value="${esc(p.artist)}" placeholder="Исполнитель">
+        <input type="url" data-t="pend" data-k="spotify" value="${esc(p.spotify)}" placeholder="Ссылка на Spotify (необязательно)">
+        ${p.mp3 ? R('Начало', this.ctl.range('pend', 'start', p.start, 0, Math.max(0, Math.floor(p.dur) - 5), 1) + `<span class="val" data-v="pend.startT">${fmtT(p.start)}</span>`)
+          + R('Длина', this.ctl.range('pend', 'len', p.len, 10, Math.min(240, Math.ceil(p.dur)), 1, ' с'))
+          + `<div class="note">Сохранится только выбранный кусок, примерно ${fmtMB(p.size * Math.min(p.len, p.dur) / p.dur)}. Чем короче, тем легче страница. Хватает 30–60 секунд, отрывок играет по кругу.</div>`
+          : `<div class="note">Это не mp3, поэтому файл сохранится целиком (${fmtMB(p.size)}).</div>`}
+        <div class="chips"><button class="b sm" data-a="pplay">▶ Послушать отрывок</button><button class="b sm pri" data-a="padd">Добавить</button><button class="b sm" data-a="pcancel">Отмена</button></div></div>`;
+    else html += `<button class="b pri" data-a="addtrack" style="justify-content:center;padding:12px">＋ Загрузить песню (mp3)</button>`;
+    html += this.st.tracks.length ? `<div class="sec"><h4>Твои треки</h4>${this.st.tracks.map(t => `<div class="track"><div class="t"><div>${esc(t.name)}</div><small>${esc(t.artist || '—')} · ${fmtMB((this.media[t.media] || '').length * .75)}${t.spotify ? ' · Spotify ✓' : ''}</small></div>
+        <button class="b sm" data-tplay="${t.id}">▶</button><button class="b sm" data-tuse="${t.id}" title="Поставить на текущий слайд">На слайд</button><button class="b sm" data-tdel="${t.id}">🗑</button></div>`).join('')}</div>`
+      : `<div class="empty">Пока нет своих песен, играет встроенная мелодия.</div>`;
+    return html;
+  },
+  p_cover() {
+    const c = this.st.cover, k = this.ctl, R = this.row;
+    return `<div class="sec"><h4>Первый экран</h4><div class="note">Его она увидит, когда откроет ссылку. После нажатия начнётся показ и включится музыка.</div>
+      <textarea data-t="cover" data-k="title" rows="2">${esc(c.title)}</textarea>
+      <textarea data-t="cover" data-k="sub" rows="2">${esc(c.sub)}</textarea>
+      <input type="text" data-t="cover" data-k="button" value="${esc(c.button)}">
+      ${R('Цвета', k.color('cover', 'c1', c.c1) + k.color('cover', 'c2', c.c2) + k.color('cover', 'c3', c.c3))}${R('Текст', k.color('cover', 'fg', c.fg))}
+      <button class="b" data-a="pcover">👁 Посмотреть обложку</button></div>
+      <div class="sec"><h4>Общее</h4>${R('Подсказка', k.chk('set', 'hint', this.st.settings.hint, 'Показывать «тап справа — дальше»'))}</div>`;
+  },
+
+  /* ----- ввод в панели ----- */
+  onInput(ev, committed) {
+    const t = ev.target, k = t.dataset.k, scope = t.dataset.t; if (!k) return;
+    let v = t.type === 'checkbox' ? t.checked : t.type === 'range' || t.type === 'number' ? +t.value : t.value;
+    if (t.type === 'checkbox') { t.closest('label').classList.toggle('on', v); if (!committed) return; }
+    else if (committed && t.type !== 'color' && t.tagName !== 'SELECT') return;
+    if (scope === 'pend') { this.pending[k] = v; if (k === 'start') { const o = $('[data-v="pend.startT"]', this.r); if (o) o.textContent = fmtT(v); } if (k === 'len' || k === 'start') this.updVal(t, scope, k, v); return; }
+    this.push(scope + k + (this.sel || this.cur));
+    let full = false;
+    if (scope === 'el') {
+      const e = this.el; if (!e) return;
+      if (k === 'bgcOn') { e.bgc = v ? '#ffd23f' : ''; full = true; }
+      else { e[k] = k === 'weight' ? +v : v; if (k === 'shape') full = true; }
+    } else if (scope === 'slide') {
+      const s = this.slide;
+      if (k === 'gradOn') { s.bg2 = v ? '#0b0b0f' : ''; full = true; }
+      else if (k === 'mtrack') { s.music = { track: v, start: 0 }; full = true; }
+      else if (k === 'mstart') s.music.start = v;
+      else { s[k] = v; if (k === 'decor' || k === 'bg2') full = full; }
+    } else if (scope === 'cover') this.st.cover[k] = v;
+    else if (scope === 'set') this.st.settings[k] = v;
+    this.updVal(t, scope, k, v);
+    this.after(false);
+    if (full) this.renderPanel();
+  },
+  updVal(t, scope, k, v) { const o = $(`[data-v="${scope}.${k}"]`, this.r); if (o) { const s = +t.step || 1; o.textContent = (+v).toFixed(s < 1 ? (s < .1 ? 2 : 1) : 0) + (o.textContent.match(/[°с ]+$/) || [''])[0]; } },
+
+  /* ----- кнопки ----- */
+  async onClick(ev) {
+    const t = ev.target.closest('button,[data-tab]'); if (!t) return;
+    const d = t.dataset;
+    if (d.tab) { this.tab = d.tab; this.renderPanel(); return; }
+    if (d.slide != null) { this.selectSlide(+d.slide); return; }
+    if (d.add) return this.add(d.add);
+    if (d.sticker) return this.addEl(T(d.sticker, { x:38, y:44, w:24, size:16, align:'center', anim:'pop', lh:1, weight:400 }));
+    if (d.align) { this.push(); this.el.align = d.align; this.after(true); return; }
+    if (d.tplay) return this.previewTrack(d.tplay);
+    if (d.tuse) { this.push(); this.slide.music = { track: d.tuse, start: 0 }; this.after(true); toast('Трек стоит на слайде ' + (this.cur + 1)); return; }
+    if (d.tdel) { this.push(); const id = d.tdel; this.st.tracks = this.st.tracks.filter(x => x.id !== id); this.st.slides.forEach(s => { if (s.music.track === id) s.music = { track:'continue', start:0 }; }); this.after(true); return; }
+    if (d.tpl) { this.push(); const s = TEMPLATES[d.tpl](); this.st.slides.splice(this.cur + 1, 0, s); this.cur++; $('.modal') && $('.modal').remove(); this.sel = null; this.after(true); this.renderCanvas(); return; }
+    const a = d.a; if (!a) return;
+    const e = this.el, s = this.slide;
+    switch (a) {
+      case 'exit': await this.saveDraft(); this.open = false; this.r.remove(); openViewer(PUB.state, PUB.media); showEditBtn(); if (this.dirty) toast('Это опубликованная версия. Твои правки сохранены в редакторе, но ещё не опубликованы', 4000); break;
+      case 'undo': this.undo(); break;
+      case 'redo': this.redo(); break;
+      case 'preview': this.previewing = true; this.open = false; this.r.remove(); openViewer(this.st, this.media, { start: this.cur, preview: true, skipCover: true }); break;
+      case 'pcover': this.previewing = true; this.open = false; this.r.remove(); openViewer(this.st, this.media, { start: 0, preview: true }); break;
+      case 'publish': this.publish(); break;
+      case 'newslide': this.templates(); break;
+      case 'colorauto': this.push(); e.color = ''; this.after(true); break;
+      case 'center': this.push(); e.x = 50 - e.w / 2; this.after(false); break;
+      case 'front': case 'back': { this.push(); const i = s.els.indexOf(e); s.els.splice(i, 1); s.els.splice(a === 'front' ? Math.min(s.els.length, i + 1) : Math.max(0, i - 1), 0, e); this.after(false); toast(a === 'front' ? 'На слой выше' : 'На слой ниже', 1200); break; }
+      case 'dup': { this.push(); const c = clone(e); c.id = uid(); c.x += 3; c.y += 2; s.els.push(c); this.sel = c.id; this.after(true); break; }
+      case 'del': this.push(); s.els = s.els.filter(x => x !== e); this.sel = null; this.tab = 'add'; this.after(true); break;
+      case 'replaceimg': { const f = await pick('image/*'); if (!f) return; const r = await compressImage(f); const id = uid(); this.media[id] = r.url; this.push(); e.media = id; e.ratio = r.ratio; this.after(true); break; }
+      case 'imgratio': { if (!e.ratio) { toast('Сначала загрузи фото'); return; } this.push(); const can = this.can.getBoundingClientRect(); e.h = e.w * can.width * e.ratio / can.height; this.after(false); break; }
+      case 'sup': case 'sdown': { this.push(); const j = this.cur + (a === 'sup' ? -1 : 1); const arr = this.st.slides; [arr[this.cur], arr[j]] = [arr[j], arr[this.cur]]; this.cur = j; this.after(true); break; }
+      case 'sdup': { this.push(); const c = clone(s); c.id = uid(); c.els.forEach(x => x.id = uid()); this.st.slides.splice(this.cur + 1, 0, c); this.cur++; this.sel = null; this.after(true); break; }
+      case 'sdel': { this.push(); this.st.slides.splice(this.cur, 1); this.sel = null; this.after(true); toast('Слайд удалён. ↶ — вернуть', 2000); break; }
+      case 'bgimg': { const f = await pick('image/*'); if (!f) return; const r = await compressImage(f, 1440); const id = uid(); this.media[id] = r.url; this.push(); s.bgImage = id; this.after(true); break; }
+      case 'bgdel': this.push(); s.bgImage = ''; this.after(true); break;
+      case 'bgall': this.push(); this.st.slides.forEach(x => { if (x !== s) Object.assign(x, { bg: s.bg, bg2: s.bg2, angle: s.angle, fg: s.fg, decor: s.decor, accent: s.accent }); }); this.after(true); toast('Фон применён ко всем слайдам'); break;
+      case 'addtrack': return this.loadTrack();
+      case 'pplay': return this.previewPending();
+      case 'pcancel': this.stopPrev(); this.pending = null; this.renderPanel(); break;
+      case 'padd': return this.commitTrack();
+    }
+  },
+  async add(kind) {
+    const fg = this.slide.fg, ac = this.slide.accent;
+    if (kind === 'h1') return this.addEl(H1('Заголовок', 40, { delay: 0 }));
+    if (kind === 'p') return this.addEl(P('Напиши здесь что-нибудь нежное', 50, { delay: 0 }));
+    if (kind === 'num') return this.addEl(H1('100', 38, { size: 28, color: ac, ls: -.05, lh: .9, anim: 'pop', delay: 0 }));
+    if (kind === 'label') return this.addEl(T('надпись', { x: 20, y: 45, w: 60, size: 6, weight: 800, align: 'center', bgc: ac, color: fg, anim: 'pop' }));
+    if (kind === 'rect') return this.addEl(S({ shape: 'rect', fill: ac, radius: 3 }));
+    if (kind === 'circle') return this.addEl(S({ shape: 'circle', fill: ac, w: 40, h: 22.5 }));
+    if (kind === 'heart') return this.addEl(S({ shape: 'heart', fill: ac, w: 40, h: 21, loop: 'pulse' }));
+    if (kind === 'img' || kind === 'polaroid') {
+      const f = await pick('image/*'); if (!f) return;
+      const r = await compressImage(f); const id = uid(); this.media[id] = r.url;
+      const can = this.can.getBoundingClientRect(), w = kind === 'polaroid' ? 62 : 76;
+      let hh = w * can.width * r.ratio / can.height; if (kind === 'polaroid') hh = w * can.width * (r.ratio * (56 / 62) + 14 / 62) / can.height;
+      hh = Math.min(hh, 60);
+      return this.addEl(I({ media: id, ratio: r.ratio, w, h: hh, x: 50 - w / 2, y: 50 - hh / 2, frame: kind === 'polaroid', radius: kind === 'polaroid' ? .5 : 4, rot: kind === 'polaroid' ? -3 : 0 }));
+    }
+  },
+  addEl(e) { this.push(); this.slide.els.push(e); this.sel = e.id; this.tab = 'el'; this.after(true); },
+  templates() {
+    const m = h('div', 'modal');
+    const names = { blank:'Пустой', title:'Заголовок', number:'Большая цифра', photo:'Фото', top:'Топ-5', final:'Финал' };
+    m.innerHTML = `<div class="sheet"><h3>Новый слайд</h3><div class="tpls">${Object.keys(TEMPLATES).map(k => `<button class="tpl" data-tpl="${k}"><span class="thumb"><span class="canvas" data-prev="${k}"></span></span>${names[k]}</button>`).join('')}</div><button class="b" data-close>Отмена</button></div>`;
+    this.r.appendChild(m);
+    for (const c of m.querySelectorAll('[data-prev]')) renderSlide(TEMPLATES[c.dataset.prev](), c, this.media);
+    m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) m.remove(); });
+  },
+
+  /* ----- музыка в редакторе ----- */
+  prev: null,
+  stopPrev() { if (this.prev) { this.prev.pause(); clearTimeout(this.prevT); this.prev = null; } },
+  async loadTrack() {
+    const f = await pick('audio/*,.mp3,.m4a'); if (!f) return;
+    const url = URL.createObjectURL(f), a = new Audio(url);
+    const dur = await new Promise(res => { a.onloadedmetadata = () => res(a.duration); a.onerror = () => res(0); });
+    if (!dur || !isFinite(dur)) { toast('Не получилось прочитать файл. Попробуй mp3'); return; }
+    const mp3 = /mpeg|mp3/.test(f.type) || /\.mp3$/i.test(f.name);
+    if (!mp3 && f.size > 6 * 1048576) { toast('Файл слишком большой. Возьми mp3: из него можно вырезать кусок'); return; }
+    const base = f.name.replace(/\.[^.]+$/, ''), parts = base.split(/\s+[-–—]\s+/);
+    this.pending = { file: f, url, dur, mp3, size: f.size, name: parts[1] || base, artist: parts[1] ? parts[0] : '', spotify: '', start: Math.min(45, Math.max(0, Math.floor(dur / 3))), len: Math.min(60, Math.floor(dur)) };
+    this.renderPanel();
+  },
+  previewPending() {
+    const p = this.pending; if (!p) return; this.stopPrev();
+    const a = new Audio(p.url); this.prev = a; a.currentTime = p.mp3 ? p.start : 0; a.play().catch(() => {});
+    this.prevT = setTimeout(() => this.stopPrev(), 12000); toast('Играют первые 12 секунд отрывка', 1600);
+  },
+  previewTrack(id) {
+    const t = this.st.tracks.find(x => x.id === id); if (!t) return;
+    if (this.prev && this.prevId === id) { this.stopPrev(); return; }
+    this.stopPrev(); const a = new Audio(this.media[t.media]); this.prev = a; this.prevId = id; a.play().catch(() => toast('Не удалось проиграть'));
+    this.prevT = setTimeout(() => this.stopPrev(), 15000);
+  },
+  async commitTrack() {
+    const p = this.pending; if (!p) return; this.stopPrev();
+    const sp = (p.spotify || '').trim();
+    if (sp && !/^https:\/\/(open\.)?spotify\.com\/|^https:\/\/spotify\.link\//.test(sp)) { toast('Ссылка на Spotify должна начинаться с https://open.spotify.com/'); return; }
+    const btn = $('[data-a=padd]', this.r); btn.disabled = true; btn.textContent = 'Готовлю…';
+    let blob = p.file, len = p.dur;
+    if (p.mp3) { const buf = await p.file.arrayBuffer(); len = Math.min(p.len, p.dur - p.start); blob = clipMp3(buf, p.dur, p.start, len); }
+    const id = uid(); this.media[id] = await readURL(blob);
+    const tr = { id: uid(), name: p.name || 'Без названия', artist: p.artist, spotify: sp, media: id, len };
+    this.push(); this.st.tracks.push(tr);
+    const firstUse = !this.st.slides.some(s => this.st.tracks.some(t => t.id === s.music.track && t !== tr));
+    if (firstUse) this.st.slides[0].music = { track: tr.id, start: 0 };
+    URL.revokeObjectURL(p.url); this.pending = null; this.after(true);
+    toast(firstUse ? 'Трек добавлен и стоит с первого слайда' : 'Трек добавлен. Выбери его во вкладке «Слайд»', 3000);
+  },
+
+  /* ----- холст: выбор, перетаскивание, размер, поворот ----- */
+  bindCanvas() {
+    const can = this.can; let drag = null, lastTap = { id: null, t: 0 };
+    const guides = (vx, vy) => { can.querySelectorAll('.guide').forEach(g => g.remove()); if (vx) can.appendChild(h('div', 'guide v')); if (vy) can.appendChild(h('div', 'guide hz')); };
+    can.addEventListener('pointerdown', ev => {
+      const hd = ev.target.closest('.h'), node = ev.target.closest('.el');
+      if (!node) { this.select(null); return; }
+      const id = node.dataset.id; if (!hd) this.select(id);
+      const e = this.el; if (!e) return;
+      const now = Date.now();
+      if (!hd && lastTap.id === id && now - lastTap.t < 380 && e.type === 'text') { this.tab = 'el'; this.renderPanel(); const ta = $('#eltext', this.r); if (ta) { ta.focus(); ta.select(); } lastTap = { id: null, t: 0 }; return; }
+      lastTap = { id, t: now };
+      const n = $(`.el[data-id="${id}"]`, can), R = can.getBoundingClientRect();
+      drag = { mode: hd ? hd.dataset.h : 'move', e, n, R, sx: ev.clientX, sy: ev.clientY, o: clone(e), before: this.snap(), moved: false, nh: n.offsetHeight / R.height * 100 };
+      can.setPointerCapture(ev.pointerId); ev.preventDefault();
+    });
+    can.addEventListener('pointermove', ev => {
+      if (!drag) return;
+      const { e, n, R, o } = drag, dx = (ev.clientX - drag.sx) / R.width * 100, dy = (ev.clientY - drag.sy) / R.height * 100;
+      if (!drag.moved && Math.hypot(ev.clientX - drag.sx, ev.clientY - drag.sy) < 4) return;
+      drag.moved = true;
+      if (drag.mode === 'move') {
+        let x = o.x + dx, y = o.y + dy; const hh = e.type === 'text' ? drag.nh : e.h;
+        const sx = Math.abs(x + e.w / 2 - 50) < 1.5, sy = Math.abs(y + hh / 2 - 50) < 1.2;
+        if (sx) x = 50 - e.w / 2; if (sy) y = 50 - hh / 2;
+        e.x = +x.toFixed(2); e.y = +y.toFixed(2); guides(sx, sy);
+      } else if (drag.mode === 'se') {
+        if (e.type === 'text') { const f = Math.max(.15, (o.w + dx) / o.w); e.w = +(o.w * f).toFixed(2); e.size = +clamp(o.size * f, 1, 60).toFixed(2); n.querySelector('.tx').style.fontSize = e.size + 'cqw'; }
+        else { e.w = +Math.max(4, o.w + dx).toFixed(2); e.h = +Math.max(2, o.h + dy).toFixed(2); }
+      } else if (drag.mode === 'e') e.w = +Math.max(8, o.w + dx).toFixed(2);
+      else if (drag.mode === 'r') {
+        const b = n.getBoundingClientRect(), cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+        let ang = Math.atan2(ev.clientY - cy, ev.clientX - cx) * 180 / Math.PI + 90; if (ang > 180) ang -= 360;
+        for (const s of [-180, -90, -45, 0, 45, 90, 180]) if (Math.abs(ang - s) < 4) ang = s;
+        e.rot = Math.round(ang);
+      }
+      placeEl(n, e);
+    });
+    const end = () => {
+      if (!drag) return; guides(false, false);
+      if (drag.moved) { this.hist.push(drag.before); this.fut = []; this.lastKey = ''; this.after(false); if (this.tab === 'el') this.renderPanel(); }
+      drag = null;
+    };
+    can.addEventListener('pointerup', end); can.addEventListener('pointercancel', end);
+    if (this._kb) return; this._kb = true;
+    document.addEventListener('keydown', ev => {
+      if (!this.open || $('.modal')) return;
+      const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement && document.activeElement.tagName);
+      const mod = ev.ctrlKey || ev.metaKey;
+      if (mod && ev.key.toLowerCase() === 'z') { if (typing) return; ev.preventDefault(); ev.shiftKey ? this.redo() : this.undo(); return; }
+      if (typing || !this.el) return;
+      const e = this.el;
+      if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); this.push(); this.slide.els = this.slide.els.filter(x => x !== e); this.sel = null; this.after(true); }
+      else if (mod && ev.key.toLowerCase() === 'd') { ev.preventDefault(); const c = clone(e); c.id = uid(); c.x += 3; c.y += 2; this.push(); this.slide.els.push(c); this.sel = c.id; this.after(true); }
+      else if (ev.key.startsWith('Arrow')) { ev.preventDefault(); const st = ev.shiftKey ? 2 : .5; this.push('nudge' + e.id); if (ev.key === 'ArrowLeft') e.x -= st; if (ev.key === 'ArrowRight') e.x += st; if (ev.key === 'ArrowUp') e.y -= st; if (ev.key === 'ArrowDown') e.y += st; this.after(false); }
+      else if (ev.key === 'Escape') this.select(null);
+    });
+  },
+};
+
+const TEMPLATES = {
+  blank: () => slide({ bg:'#7b2ff7', fg:'#f6f1e9', accent:'#ffd23f', decor:'none' }),
+  title: () => slide({ bg:'#2b2bff', fg:'#f6f1e9', accent:'#ff4f8b', decor:'blobs', els:[ K('Подзаголовок', 36), H1('Большой заголовок', 40), P('Пара тёплых слов под ним.', 58) ] }),
+  number: () => slide({ bg:'#1db954', fg:'#0b0b0f', accent:'#7b2ff7', decor:'ring', els:[ K('Мы сделали это', 37), H1('42', 41, { size:30, color:'#7b2ff7', ls:-.05, lh:.9, anim:'pop' }), P('раза. И сделаем ещё.', 58) ] }),
+  photo: () => slide({ bg:'#ffd23f', fg:'#0b0b0f', accent:'#ff4f8b', decor:'blobs', duration:7, els:[ K('Момент', 12.5), I({ y:16.5, h:47, rot:-2.5 }), H1('Подпись к фото', 66.5, { size:7.4 }), P('Что тогда было.', 73.5, { delay:1.1 }) ] }),
+  top: () => slide({ bg:'#0b0b0f', fg:'#f6f1e9', accent:'#ff4f8b', decor:'stripes', duration:9, els:[ K('Топ-5', 24), H1('Лучшее за год', 28, { size:7.4 }),
+    ...['Первое', 'Второе', 'Третье', 'Четвёртое', 'Пятое'].flatMap((t, j) => [ T(String(j + 1), { x:8, y:38 + j * 7.4, w:10, font:'Unbounded', weight:900, size:8.5, color:'#ff4f8b', lh:1, anim:'left', delay:.7 + j * .45 }), T(t, { x:20, y:39.2 + j * 7.4, w:74, weight:800, size:5, lh:1.2, anim:'left', delay:.75 + j * .45 }) ]) ] }),
+  final: () => slide({ bg:'#e8114f', fg:'#f6f1e9', accent:'#ffd23f', decor:'hearts', duration:12, els:[ K('И главное', 36), H1('Я люблю тебя.', 40, { loop:'pulse' }), P('Последние слова.', 57) ] }),
+};
+
+/* =================== запуск =================== */
+let canEdit = /(^|#)edit$/.test(location.hash);
+function showEditBtn() {
+  if (!canEdit || $('.editbtn')) return;
+  const b = h('button', 'editbtn', '✏️ Редактор'); b.onclick = () => { b.remove(); Ed.start(); };
+  document.body.appendChild(b);
+}
+openViewer(PUB.state, PUB.media);
+showEditBtn();
+(async () => {
+  if (!window.claude || !window.claude.use) return;
+  try {
+    const [user, art] = await Promise.all([window.claude.use('user'), window.claude.use('artifact')]);
+    Ed.art = art;
+    if (user && art && await user.canEdit()) canEdit = true;
+  } catch {}
+  if (canEdit && sget('reopenEditor')) { sset('reopenEditor', null); const b = $('.editbtn'); b && b.remove(); Ed.start(); return; }
+  showEditBtn();
+})();
+})();
 </script>
-</body>
-</html>
+</body></html>
