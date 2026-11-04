@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Наш год — Wrapped</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0b0b0f;
+    --paper:#f6f1e9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#000;color:var(--paper);font-family:Manrope,system-ui,sans-serif;overflow:hidden;user-select:none}
+
+  /* Рамка-«телефон»: на мобиле во весь экран, на компе по центру 9:16 */
+  #stage{position:relative;height:100dvh;width:100vw;margin:0 auto;overflow:hidden;background:#111}
+  @media (min-aspect-ratio:3/4){#stage{width:calc(100dvh * 9 / 16);border-radius:22px;height:96dvh;top:2dvh;box-shadow:0 30px 80px rgba(0,0,0,.6)}}
+
+  /* Прогресс-бары сверху как в сторис */
+  #bars{position:absolute;z-index:20;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;gap:4px}
+  .bar{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.3);overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:#fff}
+
+  #top{position:absolute;z-index:20;top:calc(max(10px,env(safe-area-inset-top)) + 14px);left:14px;right:14px;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:800;letter-spacing:.02em}
+  #now{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.28);backdrop-filter:blur(8px);padding:6px 10px 6px 8px;border-radius:99px;max-width:75%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #now .eq{display:flex;gap:2px;align-items:flex-end;height:12px}
+  #now .eq b{width:3px;background:#fff;border-radius:2px;animation:eq 0.9s ease-in-out infinite}
+  #now .eq b:nth-child(2){animation-delay:-.3s}#now .eq b:nth-child(3){animation-delay:-.6s}
+  .paused #now .eq b{animation-play-state:paused}
+  @keyframes eq{0%,100%{height:3px}50%{height:12px}}
+  #mute{background:rgba(0,0,0,.28);backdrop-filter:blur(8px);border:0;color:#fff;width:32px;height:32px;border-radius:50%;font-size:15px;cursor:pointer}
+
+  /* Слайды */
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:90px 28px 60px;opacity:0;pointer-events:none;transition:opacity .45s ease;isolation:isolate;overflow:hidden}
+  .slide.on{opacity:1}
+  .slide h1,.slide h2{font-family:Unbounded,sans-serif;font-weight:900;line-height:1.02;letter-spacing:-.02em}
+  .slide h1{font-size:clamp(38px,11vw,64px)}
+  .slide h2{font-size:clamp(26px,7.4vw,40px)}
+  .slide p{font-size:clamp(16px,4.4vw,21px);font-weight:600;line-height:1.35;margin-top:16px}
+  .kicker{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;opacity:.85;margin-bottom:14px}
+  .big{font-family:Unbounded,sans-serif;font-weight:900;font-size:clamp(78px,25vw,150px);line-height:.9;letter-spacing:-.05em}
+
+  /* Появление текста по строкам */
+  .rv{opacity:0;transform:translateY(28px)}
+  .on .rv{animation:rise .8s cubic-bezier(.2,.9,.2,1) forwards}
+  .on .rv:nth-child(2){animation-delay:.35s}.on .rv:nth-child(3){animation-delay:.8s}
+  .on .rv:nth-child(4){animation-delay:1.3s}.on .rv:nth-child(5){animation-delay:1.8s}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* Декоративные фигуры на фоне (как в Wrapped) */
+  .blob{position:absolute;border-radius:50%;filter:blur(2px);opacity:.9;z-index:-1}
+  .on .blob{animation:float 9s ease-in-out infinite alternate}
+  @keyframes float{to{transform:translate(30px,-40px) scale(1.15) rotate(25deg)}}
+  .ring{position:absolute;border-radius:50%;border:18px solid currentColor;z-index:-1;opacity:.85}
+  .on .ring{animation:spin 18s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .stripe{position:absolute;left:-20%;right:-20%;height:70px;z-index:-1;transform:rotate(-12deg)}
+
+  /* Фото */
+  .photo{position:relative;width:100%;aspect-ratio:4/5;border-radius:18px;overflow:hidden;margin:6px 0 18px;box-shadow:0 18px 50px rgba(0,0,0,.35);transform:rotate(-2.5deg)}
+  .photo img{width:100%;height:100%;object-fit:cover;display:block}
+  .ph{width:100%;height:100%;display:grid;place-items:center;text-align:center;font-weight:800;font-size:14px;color:rgba(255,255,255,.9);
+      background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.04)),repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 12px,transparent 12px 24px)}
+  .ph span{font-size:56px;display:block;margin-bottom:8px}
+  .on .photo{animation:pop .9s cubic-bezier(.2,1.4,.3,1) both}
+  @keyframes pop{from{transform:scale(.6) rotate(-12deg);opacity:0}}
+
+  /* Топ-5 список */
+  .top5{list-style:none;margin-top:22px;display:flex;flex-direction:column;gap:12px}
+  .top5 li{display:flex;align-items:center;gap:14px;font-weight:800;font-size:clamp(16px,4.6vw,21px);opacity:0;transform:translateX(-30px)}
+  .on .top5 li{animation:rise .6s cubic-bezier(.2,.9,.2,1) forwards}
+  .top5 b{font-family:Unbounded;font-size:clamp(26px,8vw,38px);width:1.3em}
+  .top5 em{font-style:normal;font-size:28px}
+
+  /* Финал */
+  .hearts{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:-1}
+  .hearts span{position:absolute;bottom:-40px;font-size:24px;animation:up linear infinite}
+  @keyframes up{to{transform:translateY(-120dvh) rotate(40deg);opacity:0}}
+  .btn{margin-top:28px;align-self:flex-start;background:var(--paper);color:var(--ink);border:0;border-radius:99px;padding:14px 22px;font:800 15px Manrope;cursor:pointer;pointer-events:auto}
+
+  /* Стартовый экран */
+  #intro{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end;padding:40px 28px 60px;background:radial-gradient(120% 80% at 80% 10%,#ff4f8b 0,#7b2ff7 45%,#0b0b0f 80%);cursor:pointer}
+  #intro h1{font-family:Unbounded;font-weight:900;font-size:clamp(44px,13vw,72px);line-height:.95;letter-spacing:-.03em}
+  #intro p{margin-top:14px;font-weight:600;opacity:.85}
+  #intro .tap{margin-top:34px;display:inline-flex;align-items:center;gap:10px;background:#fff;color:#000;font-weight:800;padding:14px 22px;border-radius:99px;align-self:flex-start;animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.06)}}
+
+  /* Зоны тапа */
+  #prev,#next{position:absolute;top:0;bottom:0;z-index:10}
+  #prev{left:0;width:33%}#next{right:0;width:67%}
+  #hint{position:absolute;z-index:15;bottom:18px;left:0;right:0;text-align:center;font-size:12px;font-weight:700;opacity:.55}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-iteration-count:1!important}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bars"></div>
+  <div id="top">
+    <div id="now"><span class="eq"><b></b><b></b><b></b></span><span id="nowText"></span></div>
+    <button id="mute" aria-label="Звук">🔊</button>
+  </div>
+  <div id="slides"></div>
+  <div id="prev"></div><div id="next"></div>
+  <div id="hint">тап справа — дальше · слева — назад · удерживай — пауза</div>
+
+  <div id="intro">
+    <h1>Наш 2026<br>Wrapped</h1>
+    <p>Год, который я прослушал на повторе.<br>Только для тебя 💌</p>
+    <div class="tap">▶ Нажми, чтобы начать</div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ВСЁ, ЧТО НУЖНО МЕНЯТЬ — ЗДЕСЬ.
+   type: 'title' | 'number' | 'text' | 'photo' | 'top' | 'final'
+   bg / fg / accent — цвета слайда
+   image — путь к фото (например 'photos/1.jpg'); если нет — будет заглушка
+   music — { src:'music/song.mp3', title:'Песня — Исполнитель', start: 30 }
+           если файла нет — играет встроенная мелодия-заглушка
+   duration — сколько секунд показывается слайд
+   ========================================================= */
+const SLIDES = [
+  { type:'title', bg:'#1db954', fg:'#0b0b0f', accent:'#ff4f8b', duration:6,
+    kicker:'Привет, любимая', title:'Этот год был про нас.', text:'Давай вспомним, как это было.',
+    music:{ title:'Наша песня — Исполнитель', src:'' } },
+
+  { type:'number', bg:'#7b2ff7', fg:'#f6f1e9', accent:'#ffd23f', duration:6,
+    kicker:'Вместе мы провели', number:'365', text:'дней. И каждый из них — мой любимый.',
+    music:{ title:'Песня №2 — Исполнитель', src:'' } },
+
+  { type:'number', bg:'#ff4f8b', fg:'#0b0b0f', accent:'#2b2bff', duration:6,
+    kicker:'Ты отправила мне', number:'12 483', text:'сообщения. Я перечитываю их, когда скучаю.',
+    music:{ title:'Песня №2 — Исполнитель', src:'' } },
+
+  { type:'photo', bg:'#ffd23f', fg:'#0b0b0f', accent:'#ff4f8b', duration:7,
+    kicker:'Момент года', image:'', emoji:'📸', title:'Тот самый день', text:'Когда я понял, что хочу быть с тобой всегда.',
+    music:{ title:'Песня №3 — Исполнитель', src:'' } },
+
+  { type:'text', bg:'#2b2bff', fg:'#f6f1e9', accent:'#1db954', duration:6,
+    kicker:'Самое частое слово', title:'«Люблю»', text:'Обогнало «спокойной ночи» и «ты где?» с большим отрывом.',
+    music:{ title:'Песня №3 — Исполнитель', src:'' } },
+
+  { type:'top', bg:'#0b0b0f', fg:'#f6f1e9', accent:'#1db954', duration:9,
+    kicker:'Твой топ-5', title:'Лучшие моменты года',
+    items:[ ['🌊','Поездка на море'], ['🍕','Ночная пицца'], ['🎬','Наш первый фильм'], ['❄️','Первый снег вместе'], ['💋','Тот поцелуй'] ],
+    music:{ title:'Песня №4 — Исполнитель', src:'' } },
+
+  { type:'photo', bg:'#ff7a1a', fg:'#0b0b0f', accent:'#7b2ff7', duration:7,
+    kicker:'Ты — мой артист №1', image:'', emoji:'👑', title:'Слушал тебя 525 600 минут', text:'Это больше, чем 99,9% всех людей на Земле.',
+    music:{ title:'Песня №4 — Исполнитель', src:'' } },
+
+  { type:'final', bg:'#e8114f', fg:'#f6f1e9', accent:'#ffd23f', duration:12,
+    kicker:'И главное', title:'Я люблю тебя.', text:'Спасибо за этот год. Давай сделаем следующий ещё лучше.',
+    music:{ title:'Наша песня — Исполнитель', src:'' } },
+];
+
+/* ========================= ДВИЖОК ========================= */
+const $ = s => document.querySelector(s);
+const slidesEl = $('#slides'), barsEl = $('#bars'), stage = $('#stage');
+let idx = 0, t0 = 0, elapsed = 0, paused = true, raf, muted = false;
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const deco = (s, i) => {
+  const v = i % 3;
+  if (v === 0) return `<div class="blob" style="background:${s.accent};width:340px;height:340px;right:-120px;top:-80px"></div>
+                       <div class="blob" style="background:${s.fg};opacity:.12;width:200px;height:200px;left:-70px;bottom:40px"></div>`;
+  if (v === 1) return `<div class="ring" style="color:${s.accent};width:300px;height:300px;right:-110px;bottom:-60px;border-style:dashed"></div>
+                       <div class="stripe" style="background:${s.fg};opacity:.08;top:22%"></div>`;
+  return `<div class="stripe" style="background:${s.accent};top:12%"></div><div class="stripe" style="background:${s.accent};opacity:.5;bottom:10%"></div>`;
+};
+const photo = s => `<div class="photo">${s.image ? `<img src="${esc(s.image)}" alt="">` : `<div class="ph"><div><span>${s.emoji||'📷'}</span>здесь будет ваше фото</div></div>`}</div>`;
+
+SLIDES.forEach((s, i) => {
+  const el = document.createElement('section');
+  el.className = 'slide';
+  el.style.background = s.bg; el.style.color = s.fg;
+  let body = '';
+  const k = `<div class="kicker rv">${esc(s.kicker)}</div>`;
+  if (s.type === 'title')  body = `${k}<h1 class="rv">${esc(s.title)}</h1><p class="rv">${esc(s.text)}</p>`;
+  if (s.type === 'number') body = `${k}<div class="big rv" style="color:${s.accent}">${esc(s.number)}</div><p class="rv">${esc(s.text)}</p>`;
+  if (s.type === 'text')   body = `${k}<h1 class="rv" style="color:${s.accent}">${esc(s.title)}</h1><p class="rv">${esc(s.text)}</p>`;
+  if (s.type === 'photo')  body = `${k}${photo(s)}<h2 class="rv">${esc(s.title)}</h2><p class="rv">${esc(s.text)}</p>`;
+  if (s.type === 'top')    body = `${k}<h2 class="rv">${esc(s.title)}</h2><ol class="top5">${s.items.map((it, j) =>
+                              `<li style="animation-delay:${.7 + j*.45}s"><b style="color:${s.accent}">${j+1}</b><em>${it[0]}</em>${esc(it[1])}</li>`).join('')}</ol>`;
+  if (s.type === 'final')  body = `<div class="hearts">${Array.from({length:22}, () =>
+                              `<span style="left:${Math.random()*100}%;animation-duration:${5+Math.random()*6}s;animation-delay:${-Math.random()*10}s;font-size:${16+Math.random()*26}px">❤</span>`).join('')}</div>
+                              ${k}<h1 class="rv">${esc(s.title)}</h1><p class="rv">${esc(s.text)}</p><button class="btn rv" id="again">↺ Посмотреть ещё раз</button>`;
+  el.innerHTML = deco(s, i) + body;
+  slidesEl.appendChild(el);
+  barsEl.insertAdjacentHTML('beforeend', '<div class="bar"><i></i></div>');
+});
+
+/* ---------- Музыка: свой mp3 или встроенная мелодия-заглушка ---------- */
+const audio = new Audio(); audio.loop = true;
+let ctx, master, synthTimer, currentTrack = null;
+const CHORDS = [[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,65]]; // Am – F – C – G
+const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+function note(freq, start, dur, type, vol) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, start);
+  g.gain.linearRampToValueAtTime(vol, start + .03);
+  g.gain.exponentialRampToValueAtTime(.0001, start + dur);
+  o.connect(g).connect(master); o.start(start); o.stop(start + dur + .05);
+}
+function startSynth(seed) {
+  stopSynth();
+  if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); master = ctx.createGain(); master.connect(ctx.destination); }
+  master.gain.value = muted ? 0 : .18;
+  const step = .25; let n = 0, next = ctx.currentTime + .05;
+  const shift = [0, 2, -3, 5][seed % 4];
+  synthTimer = setInterval(() => {
+    while (next < ctx.currentTime + .3) {
+      const ch = CHORDS[Math.floor(n / 8) % 4].map(x => x + shift);
+      if (n % 8 === 0) ch.forEach(m => note(hz(m - 12), next, 2.1, 'triangle', .05)); // пэд
+      note(hz(ch[[0,2,1,3,2,1,3,2][n % 8]] + 12), next, .5, 'sine', .09);         // арпеджио
+      next += step; n++;
+    }
+  }, 60);
+}
+function stopSynth() { clearInterval(synthTimer); }
+function playMusic(i) {
+  const m = SLIDES[i].music || {};
+  $('#nowText').textContent = m.title || '';
+  const key = m.src || ('synth' + (m.title || ''));
+  if (key === currentTrack) { resumeMusic(); return; }
+  currentTrack = key;
+  audio.pause(); stopSynth();
+  if (m.src) {
+    audio.src = m.src; audio.currentTime = m.start || 0; audio.muted = muted;
+    audio.play().catch(() => startSynth(i));
+  } else startSynth(SLIDES.findIndex(s => (s.music||{}).title === m.title));
+}
+function pauseMusic() { audio.pause(); ctx && ctx.suspend(); }
+function resumeMusic() { if (audio.src && !audio.error) audio.play().catch(()=>{}); ctx && ctx.resume(); }
+
+/* ---------- Навигация ---------- */
+function show(i) {
+  idx = Math.max(0, Math.min(SLIDES.length - 1, i));
+  [...slidesEl.children].forEach((el, j) => el.classList.toggle('on', j === idx));
+  [...barsEl.children].forEach((b, j) => b.firstChild.style.width = j < idx ? '100%' : '0');
+  elapsed = 0; t0 = performance.now();
+  playMusic(idx);
+}
+function tick(now) {
+  if (!paused) {
+    const d = SLIDES[idx].duration * 1000, p = Math.min(1, (elapsed + now - t0) / d);
+    barsEl.children[idx].firstChild.style.width = p * 100 + '%';
+    if (p >= 1 && idx < SLIDES.length - 1) show(idx + 1);
+  }
+  raf = requestAnimationFrame(tick);
+}
+function pause() { if (paused) return; paused = true; elapsed += performance.now() - t0; stage.classList.add('paused'); pauseMusic(); }
+function play()  { if (!paused) return; paused = false; t0 = performance.now(); stage.classList.remove('paused'); resumeMusic(); }
+
+$('#intro').onclick = () => { $('#intro').remove(); paused = false; show(0); requestAnimationFrame(tick); };
+
+let holdTimer, held = false;
+['prev','next'].forEach(id => {
+  const z = $('#' + id);
+  z.addEventListener('pointerdown', () => { held = false; holdTimer = setTimeout(() => { held = true; pause(); }, 220); });
+  z.addEventListener('pointerup', e => {
+    clearTimeout(holdTimer);
+    if (held) { play(); return; }
+    if (hitAgain(e)) { show(0); return; }
+    show(id === 'next' ? idx + 1 : idx - 1);
+  });
+  z.addEventListener('pointerleave', () => { clearTimeout(holdTimer); if (held) { held = false; play(); } });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') show(idx + 1);
+  if (e.key === 'ArrowLeft') show(idx - 1);
+  if (e.key === ' ') paused ? play() : pause();
+});
+$('#mute').onclick = e => {
+  e.stopPropagation(); muted = !muted;
+  audio.muted = muted; if (master) master.gain.value = muted ? 0 : .18;
+  $('#mute').textContent = muted ? '🔇' : '🔊';
+};
+// кнопка «ещё раз» на финале: проверяем, попал ли тап в неё
+function hitAgain(e) {
+  const btn = document.getElementById('again'); if (!btn || idx !== SLIDES.length - 1) return false;
+  const r = btn.getBoundingClientRect();
+  return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+}
+</script>
+</body>
+</html>
