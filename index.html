@@ -409,10 +409,18 @@ function openViewer(st, media, { start = 0, preview = false, skipCover = false }
     const again = $('.again', stage); if (again) again.remove();
     if (V.idx === st.slides.length - 1) { const b = h('button', 'again', '↺ Посмотреть ещё раз'); b.onclick = e => { e.stopPropagation(); show(0); }; stage.appendChild(b); }
     V.el = 0; V.t0 = performance.now();
-    const info = Music.play(st, media, V.idx), now = $('.now', root);
-    now.hidden = !info;
+    setNow(V.now = Music.play(st, media, V.idx));
+  }
+  function setNow(info) {
+    const now = $('.now', root); now.hidden = !info;
     if (info) { $('.nt', now).innerHTML = esc(info.name) + (info.spotify ? '<span class="sp">Spotify ↗</span>' : ''); if (info.spotify) now.href = info.spotify; else now.removeAttribute('href'); }
   }
+  // название из Spotify, если в редакторе (claude.ai) его не удалось получить
+  for (const t of st.tracks) if (t.sp && (!t.name || t.name === 'Песня из Spotify'))
+    fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent(t.spotify)).then(r => r.ok ? r.json() : null).then(d => {
+      if (!d || !d.title) return; t.name = d.title; if (!t.cover) t.cover = d.thumbnail_url || '';
+      if (V && V.st === st && V.now && V.now.spotify === t.spotify) setNow(V.now = { name: t.name + (t.artist ? ' — ' + t.artist : ''), spotify: t.spotify });
+    }).catch(() => {});
   function tick(t) {
     if (!V) return;
     if (!V.paused) { const p = Math.min(1, (V.el + t - V.t0) / (st.slides[V.idx].duration * 1000)); bars[V.idx].firstChild.style.width = p * 100 + '%'; if (p >= 1 && V.idx < st.slides.length - 1) show(V.idx + 1); }
@@ -809,7 +817,7 @@ const Ed = {
     if (!m) { toast('Не получилось распознать ссылку. Скопируй её в Spotify через «Поделиться»', 3500); return; }
     const sp = m[1] + '/' + m[2];
     this.addTrack({ id: uid(), name: (info && info.title) || 'Песня из Spotify', artist: '', spotify: 'https://open.spotify.com/' + sp, sp, cover: (info && info.thumbnail_url) || '', media: '', len: 240 });
-    if (!info) toast('Песня добавлена. Название не подтянулось, впиши его в списке ниже', 3500);
+    if (!info) toast('Песня добавлена. На сайте название подтянется само, а здесь можно вписать его вручную', 4000);
   },
   addTrack(tr) {
     this.push(); this.st.tracks.push(tr);
