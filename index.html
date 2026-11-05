@@ -83,6 +83,11 @@ button{cursor:pointer}
 .cover p{margin:14px 0 0;font-weight:600;opacity:.85;white-space:pre-wrap;font-size:16px}
 .cover .tap{margin-top:34px;display:inline-flex;gap:10px;background:#fff;color:#000;font-weight:800;padding:14px 22px;border-radius:99px;align-self:flex-start;animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(1.06)}}
+.load{margin-top:34px;display:flex;flex-direction:column;gap:10px;align-self:stretch;max-width:320px}
+.load .lt{font-weight:800;font-size:14px;display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums}
+.load .bar{height:6px;border-radius:6px;background:rgba(255,255,255,.25);overflow:hidden}
+.load .bar i{display:block;height:100%;width:0;background:currentColor;transition:width .3s ease}
+.load .skip{align-self:flex-start;background:none;border:0;color:inherit;opacity:.75;text-decoration:underline;font-size:13px;font-weight:700;padding:4px 0}
 .editbtn{position:fixed;z-index:60;right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));background:var(--ed-accent);color:#fff;border:0;border-radius:99px;padding:12px 18px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 
 /* ---------- Редактор ---------- */
@@ -368,7 +373,7 @@ const Music = {
       this.key = key; this.audio.pause(); this.stopSynth(); Spot.stop();
       if (m.track === 'synth') this.synth();
       else if (tr && tr.sp && !tr.media) { if (!this.muted) Spot.play(tr.sp, m.start); }
-      else if (tr && (media[tr.media] || tr.url)) { this.audio.src = media[tr.media] || tr.url; this.audio.loop = true; this.audio.muted = this.muted;
+      else if (tr && (media[tr.media] || tr.url)) { const src = media[tr.media] || tr.url, pa = Pre.pool[src]; if (pa && pa !== this.audio) { this.audio.pause(); this.audio = pa; } else if (!pa) this.audio.src = src; this.audio.loop = true; this.audio.muted = this.muted;
         this.audio.onerror = media[tr.media] ? null : () => toast('Песня по ссылке не загрузилась. На claude.ai такие песни не играют: проверь на сайте. Если и там тишина, значит файл по ссылке удалили', 5000);
         const go = () => { try { this.audio.currentTime = m.start || 0; } catch {} this.audio.play().catch(() => {}); };
         this.audio.readyState >= 1 ? go() : this.audio.addEventListener('loadedmetadata', go, { once: true }); this.audio.play().catch(() => {}); }
@@ -447,11 +452,46 @@ function openViewer(st, media, { start = 0, preview = false, skipCover = false }
   else {
     const c = st.cover, cov = h('div', 'cover');
     cov.style.background = `radial-gradient(120% 80% at 80% 10%, ${c.c1} 0, ${c.c2} 45%, ${c.c3} 80%)`; cov.style.color = c.fg;
-    cov.innerHTML = `<h1>${esc(c.title)}</h1><p>${esc(c.sub)}</p><div class="tap">${esc(c.button)}</div>`;
-    cov.onclick = () => { cov.remove(); begin(); };
+    cov.innerHTML = `<h1>${esc(c.title)}</h1><p>${esc(c.sub)}</p><div class="load" role="status"><div class="lt"><span>Загружаю музыку и фото…</span><span class="pc">0%</span></div><div class="bar"><i></i></div><button class="skip" hidden>начать без ожидания</button></div>`;
+    let ready = false;
+    const go = () => { if (!cov.isConnected) return; cov.remove(); begin(); };
+    const showTap = () => { if (ready || !cov.isConnected) return; ready = true; const ld = $('.load', cov); if (ld) ld.remove(); cov.insertAdjacentHTML('beforeend', `<div class="tap">${esc(c.button)}</div>`); };
+    cov.onclick = e => { if (ready || e.target.closest('.skip')) go(); };
     stage.appendChild(cov);
+    Pre.run(st, media, (n, t) => { const pct = Math.round(n / t * 100), i = $('.load .bar i', cov), pc = $('.load .pc', cov); if (i) i.style.width = pct + '%'; if (pc) pc.textContent = pct + '%'; }).then(() => setTimeout(showTap, 350));
+    setTimeout(() => { const sk = $('.skip', cov); if (sk && !ready) sk.hidden = false; }, 7000);
   }
 }
+/* Предзагрузка перед стартом: песни, Spotify-плеер, фото и шрифты. Прогресс показывается на обложке. */
+const Pre = {
+  pool: {},
+  audio(src, ms) {
+    return new Promise(res => {
+      if (this.pool[src] && this.pool[src].readyState >= 3) return res(true);
+      const a = this.pool[src] || new Audio(); this.pool[src] = a; a.preload = 'auto';
+      let done = false; const fin = ok => { if (!done) { done = true; res(ok); } };
+      a.addEventListener('canplaythrough', () => fin(true), { once: true });
+      a.addEventListener('error', () => fin(false), { once: true });
+      setTimeout(() => fin(a.readyState >= 3), ms);
+      if (a.src !== src) { a.src = src; a.load(); }
+    });
+  },
+  image(src) { return new Promise(res => { const i = new Image(); i.onload = i.onerror = () => res(true); setTimeout(() => res(false), 10000); i.src = src; }); },
+  run(st, media, onp) {
+    const jobs = [], used = new Set(st.slides.map(s => s.music && s.music.track));
+    if (st.tracks[0]) used.add(st.tracks[0].id);
+    for (const t of st.tracks) if (used.has(t.id)) {
+      if (media[t.media] || t.url) jobs.push(() => this.audio(media[t.media] || t.url, media[t.media] ? 6000 : 20000));
+      else if (t.sp) jobs.push(() => Promise.race([Spot.load(), new Promise(r => setTimeout(r, 10000))]));
+    }
+    const imgs = new Set();
+    for (const s of st.slides) { if (s.bgImage && media[s.bgImage]) imgs.add(media[s.bgImage]); for (const e of s.els) if (e.media && media[e.media]) imgs.add(media[e.media]); }
+    for (const src of imgs) jobs.push(() => this.image(src));
+    if (document.fonts && document.fonts.ready) jobs.push(() => Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 6000))]));
+    let n = 0; const total = Math.max(1, jobs.length); onp(0, total);
+    return Promise.all(jobs.map(j => Promise.resolve().then(j).catch(() => {}).then(() => onp(++n, total))));
+  },
+};
 function closeViewer() { if (!V) return; cancelAnimationFrame(V.raf); V.root.remove(); V = null; Music.stop(); }
 document.addEventListener('keydown', e => {
   if (!V || Ed.open) return;
