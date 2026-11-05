@@ -490,6 +490,19 @@ function clipMp3(buf, dur, start, len) {
   return new Blob([u.slice(s, b)], { type: 'audio/mpeg' });
 }
 const fmtT = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+const parseT = v => { const m = String(v).trim().replace(/[.,]/, ':').match(/^(\d{1,3})(?::(\d{1,2}))?$/); if (!m) return null; return m[2] != null ? +m[1] * 60 + +m[2] : +m[1]; };
+/* Ищем «лучший момент»: самый громкий плотный кусок нужной длины (обычно припев),
+   и подравниваем начало к ближайшему резкому нарастанию звука, чтобы песня вступала красиво. */
+function bestStart(e, len, dur) {
+  const W = Math.max(4, Math.min(e.length, Math.round(len * 2))), H = Math.min(16, W), pre = [0];
+  for (const x of e) pre.push(pre[pre.length - 1] + x);
+  const avg = (a, b) => (pre[b] - pre[a]) / Math.max(1, b - a);
+  let best = 0, bs = -1;
+  for (let i = 0; i + W <= e.length; i++) { const sc = .6 * avg(i, i + W) + .4 * avg(i, i + H); if (sc > bs) { bs = sc; best = i; } }
+  let j0 = best, jump = -1;
+  for (let j = Math.max(4, best - 8); j <= Math.min(e.length - 1, best + 4); j++) { const d = e[j] - avg(j - 4, j); if (d > jump) { jump = d; j0 = j; } }
+  return Math.round(clamp(j0 / 2, 0, Math.max(0, dur - 5)));
+}
 const fmtMB = b => (b / 1048576).toFixed(1).replace('.', ',') + ' МБ';
 function pick(accept) { return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.onchange = () => res(i.files[0] || null); i.click(); }); }
 
@@ -661,7 +674,7 @@ const Ed = {
         <button class="b sm" data-a="sdup">⧉ Копия</button><button class="b sm" data-a="sdel" ${n > 1 ? '' : 'disabled'}>🗑 Удалить</button></div>
         ${R('Длительность', c.range('slide', 'duration', s.duration, 2, 30, .5, ' с'))}</div>
       <div class="sec"><h4>Музыка на слайде</h4>${R('Трек', c.sel('slide', 'mtrack', s.music.track, mopts))}
-        ${this.st.tracks.some(t => t.id === s.music.track) ? R('Начать с, с', c.range('slide', 'mstart', s.music.start || 0, 0, Math.max(1, Math.floor((this.st.tracks.find(t => t.id === s.music.track) || {}).len || 60) - 1), 1)) : ''}
+        ${this.st.tracks.some(t => t.id === s.music.track) ? R('Начать с', c.range('slide', 'mstart', s.music.start || 0, 0, Math.max(1, Math.floor((this.st.tracks.find(t => t.id === s.music.track) || {}).len || 60) - 1), 1) + `<input type="text" data-t="slide" data-k="mstartT" value="${fmtT(s.music.start || 0)}" placeholder="1:05" inputmode="decimal" style="width:68px;flex:none;text-align:center" title="С какой минуты играть, например 1:05">`) : ''}
         <div class="note">Если музыка та же, что на прошлом слайде, она не перезапускается, а играет дальше. Свои песни добавляются во вкладке «Музыка».</div></div>
       <div class="sec"><h4>Фон</h4>${R('Цвет', c.color('slide', 'bg', s.bg) + c.chk('slide', 'gradOn', !!s.bg2, 'Градиент') + (s.bg2 ? c.color('slide', 'bg2', s.bg2) : ''))}
         ${s.bg2 ? R('Угол', c.range('slide', 'angle', s.angle, 0, 360, 5, '°')) : ''}
@@ -682,7 +695,8 @@ const Ed = {
         <input type="text" data-t="pend" data-k="name" value="${esc(p.name)}" placeholder="Название">
         <input type="text" data-t="pend" data-k="artist" value="${esc(p.artist)}" placeholder="Исполнитель">
         <input type="url" data-t="pend" data-k="spotify" value="${esc(p.spotify)}" placeholder="Ссылка на Spotify (необязательно)">
-        ${p.mp3 ? R('Начало', this.ctl.range('pend', 'start', p.start, 0, Math.max(0, Math.floor(p.dur) - 5), 1) + `<span class="val" data-v="pend.startT">${fmtT(p.start)}</span>`)
+        ${p.mp3 ? R('Начало', this.ctl.range('pend', 'start', p.start, 0, Math.max(0, Math.floor(p.dur) - 5), 1) + `<input type="text" data-t="pend" data-k="startT" value="${fmtT(p.start)}" placeholder="1:05" inputmode="decimal" style="width:68px;flex:none;text-align:center" title="С какой минуты, например 1:05">`)
+          + `<div class="chips" style="align-items:center"><button class="b sm" data-a="pbest" ${p.analyzing ? 'disabled' : ''}>★ Найти лучший момент</button><small style="color:var(--ed-mute)">${p.analyzing ? 'Слушаю песню, ищу припев…' : p.auto ? '★ Выбран автоматически, можно поменять' : 'Впиши время, например 1:05, или двигай ползунок'}</small></div>`
           + R('Длина', this.ctl.range('pend', 'len', p.len, 10, Math.min(240, Math.ceil(p.dur)), 1, ' с'))
           + `<div class="note">Сохранится только выбранный кусок, примерно ${fmtMB(p.size * Math.min(p.len, p.dur) / p.dur)}. Чем короче, тем легче страница. Хватает 30–60 секунд, отрывок играет по кругу.</div>`
           : `<div class="note">Это не mp3, поэтому файл сохранится целиком (${fmtMB(p.size)}).</div>`}
@@ -714,7 +728,14 @@ const Ed = {
     let v = t.type === 'checkbox' ? t.checked : t.type === 'range' || t.type === 'number' ? +t.value : t.value;
     if (t.type === 'checkbox') { t.closest('label').classList.toggle('on', v); if (!committed) return; }
     else if (committed && t.type !== 'color' && t.tagName !== 'SELECT') return;
-    if (scope === 'pend') { this.pending[k] = v; if (k === 'start') { const o = $('[data-v="pend.startT"]', this.r); if (o) o.textContent = fmtT(v); } if (k === 'len' || k === 'start') this.updVal(t, scope, k, v); return; }
+    if (scope === 'pend') {
+      const p = this.pending; if (!p) return;
+      if (k === 'startT') { const sec = parseT(v); if (sec == null) return; p.start = clamp(sec, 0, Math.max(0, Math.floor(p.dur) - 5)); p.auto = false; const r = $('input[data-t=pend][data-k=start]', this.r); if (r) { r.value = p.start; this.updVal(r, scope, 'start', p.start); } return; }
+      p[k] = v;
+      if (k === 'start') { p.auto = false; const o = $('input[data-t=pend][data-k=startT]', this.r); if (o) o.value = fmtT(v); }
+      if (k === 'len' || k === 'start') this.updVal(t, scope, k, v);
+      return;
+    }
     this.push(scope + k + (this.sel || this.cur));
     let full = false;
     if (scope === 'el') {
@@ -725,7 +746,8 @@ const Ed = {
       const s = this.slide;
       if (k === 'gradOn') { s.bg2 = v ? '#0b0b0f' : ''; full = true; }
       else if (k === 'mtrack') { s.music = { track: v, start: 0 }; full = true; }
-      else if (k === 'mstart') s.music.start = v;
+      else if (k === 'mstart') { s.music.start = v; const o = $('input[data-k=mstartT]', this.r); if (o) o.value = fmtT(v); }
+      else if (k === 'mstartT') { const sec = parseT(v); if (sec == null) return; s.music.start = sec; const r = $('input[data-k=mstart]', this.r); if (r) { r.value = sec; this.updVal(r, scope, 'mstart', sec); } }
       else { s[k] = v; if (k === 'decor' || k === 'bg2') full = full; }
     } else if (scope === 'cover') this.st.cover[k] = v;
     else if (scope === 'set') this.st.settings[k] = v;
@@ -775,6 +797,7 @@ const Ed = {
       case 'pplay': return this.previewPending();
       case 'pcancel': this.stopPrev(); this.pending = null; this.renderPanel(); break;
       case 'padd': return this.commitTrack();
+      case 'pbest': return this.findBest();
       case 'spadd': return this.addSpotify(t);
       case 'urladd': return this.addUrlTrack();
     }
@@ -849,6 +872,23 @@ const Ed = {
     const base = f.name.replace(/\.[^.]+$/, ''), parts = base.split(/\s+[-–—]\s+/);
     this.pending = { file: f, url, dur, mp3, size: f.size, name: parts[1] || base, artist: parts[1] ? parts[0] : '', spotify: '', start: Math.min(45, Math.max(0, Math.floor(dur / 3))), len: Math.min(60, Math.floor(dur)) };
     this.renderPanel();
+    if (mp3) this.findBest();
+  },
+  async findBest() {
+    const p = this.pending; if (!p || p.analyzing) return;
+    p.analyzing = true; this.renderPanel();
+    try {
+      if (!p.energy) {
+        const C = window.AudioContext || window.webkitAudioContext, ctx = new C();
+        const buf = await new Promise((res, rej) => { p.file.arrayBuffer().then(ab => { const r = ctx.decodeAudioData(ab, res, rej); if (r && r.then) r.then(res, rej); }, rej); });
+        try { ctx.close(); } catch {}
+        const d = buf.getChannelData(0), step = Math.floor(buf.sampleRate / 2), e = [];
+        for (let i = 0; i + step <= d.length; i += step) { let q = 0; for (let j = i; j < i + step; j += 8) q += d[j] * d[j]; e.push(Math.sqrt(q / (step / 8))); }
+        p.energy = e;
+      }
+      p.start = bestStart(p.energy, Math.min(p.len, p.dur), p.dur); p.auto = true;
+    } catch { toast('Не получилось разобрать песню. Выбери момент сам', 3000); }
+    p.analyzing = false; if (this.pending === p && this.tab === 'music') this.renderPanel();
   },
   previewPending() {
     const p = this.pending; if (!p) return; this.stopPrev();
